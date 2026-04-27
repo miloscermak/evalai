@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>EvalAI — Spustit workshop</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="start.css">
+</head>
+<body class="start-body">
+  <header class="start-header">
+    <strong>EvalAI</strong>
+    <span class="muted">/ admin</span>
+  </header>
+
+  <main class="start-main">
+
+    <!-- Setup view: zadat ID a spustit -->
+    <section id="setup-view" class="card">
+      <h1>Spustit workshop</h1>
+      <p class="muted">Vytvoří novou session s vlastním ID. Účastníci pak vyplňují přes QR kód, ty sleduješ dashboard.</p>
+
+      <label for="wid-input" class="field-label">ID workshopu</label>
+      <input id="wid-input" class="field-input" type="text" placeholder="cez-2026-04-27" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <small class="hint">Krátké, bez mezer a diakritiky. Třeba zkratka klienta + datum.</small>
+
+      <button id="start-btn" class="btn btn-primary">Spustit session</button>
+    </section>
+
+    <!-- Active session view -->
+    <section id="session-view" class="card" hidden>
+      <div class="session-head">
+        <div>
+          <small class="muted">Workshop ID</small>
+          <h2 id="wid-display"></h2>
+        </div>
+        <button id="reset-btn" class="link-btn">↻ Spustit jinou session</button>
+      </div>
+
+      <div class="session-grid">
+
+        <div class="block">
+          <h3>Pro účastníky</h3>
+          <div id="qr-wrap" class="qr-wrap"></div>
+          <div class="url-row">
+            <input id="form-url" class="field-input mono" type="text" readonly>
+            <button id="copy-btn" class="btn btn-secondary">Kopírovat</button>
+          </div>
+          <small class="hint">Promítni QR na plátno nebo nasdílej odkaz.</small>
+        </div>
+
+        <div class="block">
+          <h3>Pro tebe</h3>
+          <a id="dashboard-link" class="btn btn-primary" target="_blank" rel="noopener">Otevřít dashboard →</a>
+          <div class="counter">
+            <div class="counter-label">Stav session</div>
+            <div id="counter-value" class="counter-value">—</div>
+            <small class="hint" id="counter-meta">načítám…</small>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <div id="error-banner" class="error-banner" hidden></div>
+  </main>
+
+  <footer class="footer">
+    <a href="/" class="muted">Inspiruj.se · EvalAI</a>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script src="config.js"></script>
+  <script src="start.js"></script>
+</body>
+</html>
