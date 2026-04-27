@@ -91,10 +91,10 @@
 }
 
 /* SVG styly */
-.q-bg-tl { fill: #fef3c7; }   /* realistic power user — warm */
+.q-bg-tl { fill: #e0e7ff; }   /* beginner enthusiast — blue */
 .q-bg-tr { fill: #d1fae5; }   /* optimistic power user — green */
 .q-bg-bl { fill: #fee2e2; }   /* beginner skeptic — red */
-.q-bg-br { fill: #e0e7ff; }   /* beginner enthusiast — blue */
+.q-bg-br { fill: #fef3c7; }   /* realistic power user — warm */
 .q-bg-tl, .q-bg-tr, .q-bg-bl, .q-bg-br { opacity: 0.35; }
 
 .axis-line {
@@ -200,10 +200,10 @@
   flex-shrink: 0;
 }
 
-.ql-q.tl { background: #fef3c7; }
+.ql-q.tl { background: #e0e7ff; }
 .ql-q.tr { background: #d1fae5; }
 .ql-q.bl { background: #fee2e2; }
-.ql-q.br { background: #e0e7ff; }
+.ql-q.br { background: #fef3c7; }
 
 .archetype-key {
   background: white;

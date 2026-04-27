@@ -107,10 +107,10 @@
 
     // labely kvadrantů (rohové, decentní)
     const labelOffset = 30;
-    html += `<text class="q-label" x="${left + labelOffset}" y="${top + labelOffset}">Realistický power user</text>`;
+    html += `<text class="q-label" x="${left + labelOffset}" y="${top + labelOffset}">Začátečník-nadšenec</text>`;
     html += `<text class="q-label" x="${right - labelOffset}" y="${top + labelOffset}" text-anchor="end">Optimistický power user</text>`;
     html += `<text class="q-label" x="${left + labelOffset}" y="${bottom - labelOffset}">Začátečník-skeptik</text>`;
-    html += `<text class="q-label" x="${right - labelOffset}" y="${bottom - labelOffset}" text-anchor="end">Začátečník-nadšenec</text>`;
+    html += `<text class="q-label" x="${right - labelOffset}" y="${bottom - labelOffset}" text-anchor="end">Realistický power user</text>`;
 
     svg.innerHTML = html;
   }

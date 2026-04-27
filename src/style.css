@@ -429,6 +429,13 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
   margin-bottom: 24px;
 }
 
+.thanks-cta {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 12px;
+  text-decoration: none;
+}
+
 /* ──────── footer ──────── */
 
 .footer {

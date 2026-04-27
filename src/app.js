@@ -447,10 +447,12 @@
   function renderThanks() {
     const el = document.createElement('div');
     el.className = 'screen thanks';
+    const dashUrl = 'dashboard.html' + (state.workshop ? '?w=' + encodeURIComponent(state.workshop) : '');
     el.innerHTML = `
       <div class="thanks-icon">✓</div>
       <h1>Hotovo, díky.</h1>
-      <p>Tvé odpovědi jsou v systému. Pokud jsi v sále, brzy uvidíš svou tečku na grafu.</p>
+      <p>Tvé odpovědi jsou v systému. Podívej se, kde jsi na mapě:</p>
+      <a class="btn btn-primary thanks-cta" href="${dashUrl}">Ukaž mi mapu →</a>
       ${config.webhookUrl ? '' : '<p style="color:var(--text-subtle);font-size:14px;margin-top:24px;">DEV mód: payload je v console (DevTools).</p>'}
     `;
     return el;
