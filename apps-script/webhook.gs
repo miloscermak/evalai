@@ -23,10 +23,10 @@
 // CONFIG
 // ════════════════════════════════════════════════════════════════════════
 
-const SPREADSHEET_ID = '<<PASTE_YOUR_SHEET_ID_HERE>>';
+const SPREADSHEET_ID = '17ykmmC2LHVc871aoGU0vFEUygzl-vF1Jn1ISamaV8JI';
 const SHEET_NAME = 'submissions';
 
-const CLAUDE_MODEL = 'claude-sonnet-4-5-20250929';
+const CLAUDE_MODEL = 'claude-sonnet-4-6';
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 
 // header row pro sheet — pořadí MUSÍ odpovídat appendRow níž
