@@ -23,3 +23,6 @@ dist/
 
 # Local data (transcripts are referenční, ne git-tracked)
 data/transcripts/
+
+# Claude Code worktrees / local cache
+.claude/
