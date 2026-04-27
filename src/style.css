@@ -1,0 +1,454 @@
+/* EvalAI dotazník — moderní, elegantní, mobile-first
+ * Paleta: near-white pozadí, near-black text, teal akcent
+ */
+
+:root {
+  --bg: #ffffff;
+  --bg-soft: #fafafa;
+  --text: #0a0a0a;
+  --text-muted: #525252;
+  --text-subtle: #737373;
+  --border: #e5e5e5;
+  --border-strong: #d4d4d4;
+  --accent: #0d9488;
+  --accent-hover: #0f766e;
+  --accent-soft: #ccfbf1;
+  --error: #dc2626;
+  --max-width: 560px;
+  --radius: 12px;
+  --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ──────── topbar ──────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.progress {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ──────── screen container ──────── */
+
+.screen-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px;
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  padding: 32px 0 24px;
+  animation: fadeIn 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.section-tag {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.q-title {
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+.q-subtitle {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+/* ──────── option buttons (single + multi) ──────── */
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+  font-size: 16px;
+  color: var(--text);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.option:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-soft);
+}
+
+.option.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-weight: 500;
+}
+
+.option .indicator {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.option[data-type="multi"] .indicator {
+  border-radius: 5px;
+}
+
+.option.selected .indicator {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.option.selected .indicator::after {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.option.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ──────── scale (Q6, Q9) ──────── */
+
+.scale {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.scale-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.scale-btn {
+  padding: 16px 0;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.scale-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-soft);
+}
+
+.scale-btn.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.scale-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-subtle);
+  padding: 0 4px;
+}
+
+/* ──────── text inputs ──────── */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.field-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 17px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  transition: border-color var(--transition);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.5;
+}
+
+.char-count {
+  font-size: 12px;
+  color: var(--text-subtle);
+  text-align: right;
+  margin-top: 2px;
+}
+
+/* ──────── animal screen specific ──────── */
+
+.animal-pair {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.animal-pair-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+/* ──────── nav buttons ──────── */
+
+.nav {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  padding-bottom: 24px;
+}
+
+.btn {
+  flex: 1;
+  padding: 16px 24px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled {
+  background: var(--border-strong);
+  color: var(--text-subtle);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  flex: 0 0 auto;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1.5px solid var(--border);
+  padding: 16px 18px;
+}
+
+.btn-secondary:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.error-msg {
+  color: var(--error);
+  font-size: 14px;
+  margin-top: 8px;
+  min-height: 20px;
+}
+
+/* ──────── welcome / thank you ──────── */
+
+.welcome,
+.thanks {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  padding: 40px 0;
+  min-height: 60vh;
+}
+
+.welcome h1,
+.thanks h1 {
+  font-size: 32px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.welcome p,
+.thanks p {
+  font-size: 17px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.welcome-meta {
+  margin-top: 24px;
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--text-subtle);
+}
+
+.thanks-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin-bottom: 24px;
+}
+
+/* ──────── footer ──────── */
+
+.footer {
+  text-align: center;
+  padding: 16px 20px 24px;
+  color: var(--text-subtle);
+  font-size: 12px;
+}
+
+/* ──────── desktop tweaks ──────── */
+
+@media (min-width: 640px) {
+  body { font-size: 18px; }
+  .q-title { font-size: 28px; }
+  .topbar { padding: 18px 24px; }
+  .screen { padding: 48px 0 32px; }
+}
+
+/* ──────── reduce motion ──────── */
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

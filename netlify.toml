@@ -1,0 +1,11 @@
+# Netlify konfigurace
+
+[build]
+  publish = "src"
+  command = ""
+
+# Hezčí URL bez .html
+[[redirects]]
+  from = "/dashboard"
+  to = "/dashboard.html"
+  status = 200

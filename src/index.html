@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d9488">
+  <title>EvalAI — kde jsi na mapě AI?</title>
+  <meta name="description" content="Krátký dotazník pro workshopy Inspiruj.se. Tři minuty, deset otázek, mapa tvého vztahu k AI.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <div class="topbar">
+      <div class="brand">EvalAI</div>
+      <div class="progress">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+    </div>
+
+    <div class="screen-container" id="screen-container">
+      <!-- screens rendered by app.js -->
+    </div>
+
+    <footer class="footer">
+      <small>Připravil <a href="https://inspiruj.se" target="_blank" rel="noopener">Inspiruj.se</a> · anonymní · ~3 minuty</small>
+    </footer>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

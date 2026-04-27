@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d9488">
+  <title>EvalAI — mapa účastníků</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="dashboard-body">
+  <header class="dash-header">
+    <div class="dash-title">
+      <strong>EvalAI · mapa účastníků</strong>
+      <span id="workshop-label"></span>
+    </div>
+    <div class="dash-meta">
+      <span id="count">0 účastníků</span>
+      <button id="refresh-btn" class="btn-icon" title="Obnovit">↻</button>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <div id="plot-wrap" class="plot-wrap">
+      <svg id="plot" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+      <div id="tooltip" class="tooltip" hidden></div>
+    </div>
+
+    <aside class="legend">
+      <div class="quadrant-legend">
+        <div class="ql-row"><span class="ql-q tl"></span> Realistický power user <small>(zkušený, opatrný)</small></div>
+        <div class="ql-row"><span class="ql-q tr"></span> Optimistický power user <small>(zkušený, pozitivní)</small></div>
+        <div class="ql-row"><span class="ql-q bl"></span> Začátečník-skeptik <small>(nezkušený, opatrný)</small></div>
+        <div class="ql-row"><span class="ql-q br"></span> Začátečník-nadšenec <small>(nezkušený, pozitivní)</small></div>
+      </div>
+      <div class="archetype-key">
+        <small>Vlaječka <span class="flag">⚑</span> = animal přirovnání ukazuje na výrazně jiný postoj než ostatní odpovědi (zajímavý případ).</small>
+      </div>
+    </aside>
+  </main>
+
+  <div id="loading" class="loading" hidden>Načítám…</div>
+  <div id="error" class="error-banner" hidden></div>
+
+  <script src="config.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>
