@@ -201,6 +201,29 @@ function scoreAnimal(q10) {
 
   const prompt = buildClaudePrompt(animalSelf, reasonSelf, animalAi, reasonAi);
 
+  // Tools API vynutí strukturovaný výstup — Claude musí zavolat tool
+  // se správnými typy, žádný JSON parsing hazard.
+  const tool = {
+    name: 'record_animal_score',
+    description: 'Zaznamenej kódování animal metafory.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        animal_x_mod: { type: 'integer', minimum: -5,  maximum: 5  },
+        animal_y_mod: { type: 'integer', minimum: -10, maximum: 10 },
+        archetype: {
+          type: 'string',
+          enum: [
+            'optimistic_power_user', 'realistic_power_user', 'pragmatic_user',
+            'beginner_enthusiast', 'beginner_skeptic', 'manager_proxy', 'unclear',
+          ],
+        },
+        note: { type: 'string', maxLength: 300 },
+      },
+      required: ['animal_x_mod', 'animal_y_mod', 'archetype', 'note'],
+    },
+  };
+
   const response = UrlFetchApp.fetch(CLAUDE_API_URL, {
     method: 'post',
     contentType: 'application/json',
@@ -210,7 +233,9 @@ function scoreAnimal(q10) {
     },
     payload: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: 600,
+      max_tokens: 1024,
+      tools: [tool],
+      tool_choice: { type: 'tool', name: 'record_animal_score' },
       messages: [{ role: 'user', content: prompt }],
     }),
     muteHttpExceptions: true,
@@ -220,24 +245,21 @@ function scoreAnimal(q10) {
   const body = response.getContentText();
 
   if (code !== 200) {
-    throw new Error('Claude API ' + code + ': ' + body.slice(0, 200));
+    throw new Error('Claude API ' + code + ': ' + body.slice(0, 300));
   }
 
   const data = JSON.parse(body);
-  const text = (data.content && data.content[0] && data.content[0].text) || '';
-
-  // Claude vrátí JSON v bloku — vytáhneme ho regexem
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) {
-    throw new Error('Claude nevrátil JSON: ' + text.slice(0, 200));
+  const toolUse = (data.content || []).find(c => c.type === 'tool_use');
+  if (!toolUse || !toolUse.input) {
+    throw new Error('Claude nevrátil tool_use blok: ' + body.slice(0, 300));
   }
 
-  const parsed = JSON.parse(match[0]);
+  const input = toolUse.input;
   return {
-    x_mod:     clamp(parsed.animal_x_mod || 0, -5, 5),
-    y_mod:     clamp(parsed.animal_y_mod || 0, -10, 10),
-    archetype: String(parsed.archetype || '').slice(0, 80),
-    note:      String(parsed.note      || '').slice(0, 300),
+    x_mod:     clamp(input.animal_x_mod || 0, -5, 5),
+    y_mod:     clamp(input.animal_y_mod || 0, -10, 10),
+    archetype: String(input.archetype || '').slice(0, 80),
+    note:      String(input.note      || '').slice(0, 300),
   };
 }
 
@@ -284,10 +306,8 @@ function buildClaudePrompt(animalSelf, reasonSelf, animalAi, reasonAi) {
     '    Cituj klíčové slovo z důvodu, ne jen druh zvířete.',
     '',
     'PRAVIDLO ROZPORU: pokud druh zvířete a důvod ukazují jinam, řiď se důvodem.',
-    'PRAVIDLO STRUČNOSTI: vrať POUZE JSON, žádný další text před ani po.',
     '',
-    'Příklad výstupu:',
-    '{"animal_x_mod": 3, "animal_y_mod": -8, "archetype": "realistic_power_user", "note": "Vlk smečky + sedmihlavý drak \\"plyje oheň\\" — vysoká agency, ale výrazný strach z autonomie AI."}',
+    'Zavolej tool record_animal_score s vyplněnými hodnotami.',
   ].join('\n');
 }
 
