@@ -1,0 +1,25 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Env / secrets
+.env
+.env.local
+*.key
+
+# Node (for future)
+node_modules/
+dist/
+.cache/
+
+# Logs
+*.log
+
+# Local data (transcripts are referenční, ne git-tracked)
+data/transcripts/
