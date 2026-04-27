@@ -36,6 +36,7 @@ const SHEET_HEADERS = [
   'score_x_raw', 'score_y_raw',
   'archetype', 'animal_x_mod', 'animal_y_mod', 'animal_note',
   'score_x_final', 'score_y_final', 'outlier_flag',
+  'interpretation',
   'user_agent', 'version',
 ];
 
@@ -47,10 +48,10 @@ function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
     const result  = processSubmission(payload);
-    return jsonResponse({ ok: true, id: result.submission_id });
+    return jsonResponse({ ok: true, ...result });
   } catch (err) {
     console.error('doPost error:', err);
-    return jsonResponse({ ok: false, error: String(err) }, 500);
+    return jsonResponse({ ok: false, error: String(err) });
   }
 }
 
@@ -82,8 +83,8 @@ function processSubmission(payload) {
   const xRaw = scoreX(a);
   const yRaw = scoreY(a);
 
-  // animal modifikátor přes Claude API
-  let animal = { x_mod: 0, y_mod: 0, archetype: '', note: '' };
+  // animal modifikátor přes Claude API + interpretace
+  let animal = { x_mod: 0, y_mod: 0, archetype: '', note: '', interpretation: '' };
   try {
     if (a.q10) animal = scoreAnimal(a.q10);
   } catch (err) {
@@ -111,13 +112,23 @@ function processSubmission(payload) {
     xRaw, yRaw,
     animal.archetype, animal.x_mod, animal.y_mod, animal.note,
     xFinal, yFinal, outlier,
+    animal.interpretation || '',
     (payload.userAgent || '').slice(0, 200),
     payload.version || '',
   ];
 
   appendRow(row);
 
-  return { submission_id, score_x: xFinal, score_y: yFinal, archetype: animal.archetype };
+  return {
+    submission_id,
+    score_x: xFinal,
+    score_y: yFinal,
+    archetype: animal.archetype,
+    interpretation: animal.interpretation,
+    animal_self: a.q10 ? a.q10.animalSelf || '' : '',
+    animal_ai:   a.q10 ? a.q10.animalAi   || '' : '',
+    animal_note: animal.note,
+  };
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -205,7 +216,7 @@ function scoreAnimal(q10) {
   // se správnými typy, žádný JSON parsing hazard.
   const tool = {
     name: 'record_animal_score',
-    description: 'Zaznamenej kódování animal metafory.',
+    description: 'Zaznamenej kódování animal metafory + interpretaci pro účastníka.',
     input_schema: {
       type: 'object',
       properties: {
@@ -219,8 +230,9 @@ function scoreAnimal(q10) {
           ],
         },
         note: { type: 'string', maxLength: 300 },
+        interpretation: { type: 'string', maxLength: 400 },
       },
-      required: ['animal_x_mod', 'animal_y_mod', 'archetype', 'note'],
+      required: ['animal_x_mod', 'animal_y_mod', 'archetype', 'note', 'interpretation'],
     },
   };
 
@@ -256,10 +268,11 @@ function scoreAnimal(q10) {
 
   const input = toolUse.input;
   return {
-    x_mod:     clamp(input.animal_x_mod || 0, -5, 5),
-    y_mod:     clamp(input.animal_y_mod || 0, -10, 10),
-    archetype: String(input.archetype || '').slice(0, 80),
-    note:      String(input.note      || '').slice(0, 300),
+    x_mod:          clamp(input.animal_x_mod || 0, -5, 5),
+    y_mod:          clamp(input.animal_y_mod || 0, -10, 10),
+    archetype:      String(input.archetype      || '').slice(0, 80),
+    note:           String(input.note           || '').slice(0, 300),
+    interpretation: String(input.interpretation || '').slice(0, 400),
   };
 }
 
@@ -304,6 +317,11 @@ function buildClaudePrompt(animalSelf, reasonSelf, animalAi, reasonAi) {
     '',
     '  note: jedna stručná věta v češtině (max 200 znaků), proč jsi modifikátor takhle určil.',
     '    Cituj klíčové slovo z důvodu, ne jen druh zvířete.',
+    '',
+    '  interpretation: 2–3 věty v češtině, oslovuj účastníka „ty" (tykáš, neformálně, ale s respektem).',
+    '    Shrň, jaký typ uživatele AI je (vycházej z archetype) a vyzdvihni jeden konkrétní postřeh',
+    '    z jeho přirovnání. Buď konkrétní, ne generický. Žádné fráze „je vidět, že…", „určitě...".',
+    '    Žádný banální závěr typu „pokračuj v dobré práci". Max 400 znaků. Smí být i mírně provokativní.',
     '',
     'PRAVIDLO ROZPORU: pokud druh zvířete a důvod ukazují jinam, řiď se důvodem.',
     '',

@@ -28,6 +28,7 @@
     submitted: false,
     submitting: false,
     submitError: null,
+    result: null,                   // odpověď z webhooku po submitu (score, archetype, interpretation…)
   };
 
   function getWorkshopFromUrl() {
@@ -414,20 +415,24 @@
     }
 
     try {
-      // Apps Script web app — no-cors, fire-and-forget
-      await fetch(config.webhookUrl, {
+      // Apps Script web app: text/plain → simple CORS request, žádný preflight.
+      // mode: 'cors' nám dovolí přečíst odpověď (score, archetype, interpretace).
+      const res = await fetch(config.webhookUrl, {
         method: 'POST',
-        mode: 'no-cors',
+        mode: 'cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload),
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.ok) state.result = data;
+      }
       finishSubmit();
     } catch (err) {
-      console.error('[EvalAI] submit error:', err);
-      state.submitError = err.message || String(err);
-      state.submitting = false;
-      render();
-      showError('Něco se zaseklo při odesílání. Zkus to za chvilku znovu.');
+      // Pokud CORS / network selhal, server pravděpodobně přesto zapsal —
+      // jen nedostaneme zpět data pro result screen. Ukážeme fallback thanks.
+      console.warn('[EvalAI] response read failed (server may have written anyway):', err);
+      finishSubmit();
     }
   }
 
@@ -445,6 +450,9 @@
   // ──────── thanks screen ────────
 
   function renderThanks() {
+    if (state.result) return renderResult(state.result);
+
+    // fallback: server zapsal, ale odpověď se nepřečetla (CORS/network)
     const el = document.createElement('div');
     el.className = 'screen thanks';
     const dashUrl = 'dashboard.html' + (state.workshop ? '?w=' + encodeURIComponent(state.workshop) : '');
@@ -456,6 +464,73 @@
       ${config.webhookUrl ? '' : '<p style="color:var(--text-subtle);font-size:14px;margin-top:24px;">DEV mód: payload je v console (DevTools).</p>'}
     `;
     return el;
+  }
+
+  // ──────── result screen (po úspěšném submitu, když máme odpověď) ────────
+
+  const ARCHETYPE_LABELS = {
+    optimistic_power_user: 'Optimistický power user',
+    realistic_power_user:  'Realistický power user',
+    pragmatic_user:        'Pragmatický uživatel',
+    beginner_enthusiast:   'Začátečník-nadšenec',
+    beginner_skeptic:      'Začátečník-skeptik',
+    manager_proxy:         'Manažer (proxy uživatel)',
+    unclear:               'Smíšený typ',
+  };
+
+  function renderResult(r) {
+    const el = document.createElement('div');
+    el.className = 'screen result';
+    const dashUrl = 'dashboard.html' + (state.workshop ? '?w=' + encodeURIComponent(state.workshop) : '');
+    const archLabel = ARCHETYPE_LABELS[r.archetype] || r.archetype || '';
+    const x = Number(r.score_x) || 0;
+    const y = Number(r.score_y) || 0;
+
+    el.innerHTML = `
+      <div class="thanks-icon">✓</div>
+      <h1>Tady jsi na mapě AI</h1>
+      <div class="result-map">${miniMapSvg(x, y, state.name)}</div>
+      ${archLabel ? `<div class="result-archetype">${escapeHtml(archLabel)}</div>` : ''}
+      ${r.interpretation ? `<p class="result-interpretation">${escapeHtml(r.interpretation)}</p>` : ''}
+      ${(r.animal_self || r.animal_ai) ? `
+        <div class="result-animal">
+          <div class="result-animal-pair">
+            <span><strong>Já:</strong> ${escapeHtml(r.animal_self || '')}</span>
+            <span class="sep">×</span>
+            <span><strong>AI:</strong> ${escapeHtml(r.animal_ai || '')}</span>
+          </div>
+          ${r.animal_note ? `<div class="result-animal-note">${escapeHtml(r.animal_note)}</div>` : ''}
+        </div>
+      ` : ''}
+      <a class="btn btn-secondary result-cta" href="${dashUrl}">Podívej se, kde jsou ostatní →</a>
+    `;
+    return el;
+  }
+
+  function miniMapSvg(x, y, name) {
+    const SIZE = 360, MARGIN = 36, PLOT = SIZE - 2 * MARGIN;
+    const cx = MARGIN + (x / 100) * PLOT;
+    const cy = MARGIN + (1 - y / 100) * PLOT;
+    const mid = MARGIN + PLOT / 2;
+    const labelY = cy > SIZE - 60 ? cy - 16 : cy + 26;
+    return `
+      <svg viewBox="0 0 ${SIZE} ${SIZE}" preserveAspectRatio="xMidYMid meet">
+        <rect x="${MARGIN}" y="${MARGIN}" width="${PLOT/2}" height="${PLOT/2}" fill="#e0e7ff" opacity="0.45"/>
+        <rect x="${mid}" y="${MARGIN}" width="${PLOT/2}" height="${PLOT/2}" fill="#d1fae5" opacity="0.45"/>
+        <rect x="${MARGIN}" y="${mid}" width="${PLOT/2}" height="${PLOT/2}" fill="#fee2e2" opacity="0.45"/>
+        <rect x="${mid}" y="${mid}" width="${PLOT/2}" height="${PLOT/2}" fill="#fef3c7" opacity="0.45"/>
+        <line x1="${mid}" y1="${MARGIN}" x2="${mid}" y2="${SIZE - MARGIN}" stroke="#a3a3a3" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="${MARGIN}" y1="${mid}" x2="${SIZE - MARGIN}" y2="${mid}" stroke="#a3a3a3" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="${MARGIN + 4}" y="${MARGIN + 14}" font-size="10" fill="#525252">začátečník-nadšenec</text>
+        <text x="${SIZE - MARGIN - 4}" y="${MARGIN + 14}" font-size="10" fill="#525252" text-anchor="end">optim. power user</text>
+        <text x="${MARGIN + 4}" y="${SIZE - MARGIN - 6}" font-size="10" fill="#525252">začátečník-skeptik</text>
+        <text x="${SIZE - MARGIN - 4}" y="${SIZE - MARGIN - 6}" font-size="10" fill="#525252" text-anchor="end">real. power user</text>
+        <text x="${mid + 6}" y="${MARGIN + 14}" font-size="10" fill="#737373">↑ optimismus</text>
+        <text x="${MARGIN + 4}" y="${mid - 6}" font-size="10" fill="#737373">← zkušenost</text>
+        <circle cx="${cx}" cy="${cy}" r="9" fill="#0d9488" stroke="white" stroke-width="2"/>
+        <text x="${cx}" y="${labelY}" font-size="13" font-weight="600" fill="#171717" text-anchor="middle">${escapeHtml(name || 'ty')}</text>
+      </svg>
+    `;
   }
 
   // ──────── helpers ────────

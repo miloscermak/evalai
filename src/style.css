@@ -436,6 +436,82 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
   text-decoration: none;
 }
 
+/* ──────── result screen po submitu ──────── */
+
+.result {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.result h1 {
+  font-size: 26px;
+  margin-bottom: 4px;
+}
+
+.result-map {
+  width: 100%;
+  max-width: 360px;
+  align-self: center;
+  margin: 8px 0 4px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.result-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.result-archetype {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+  margin-top: 4px;
+}
+
+.result-interpretation {
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 4px 0 8px;
+}
+
+.result-animal {
+  background: var(--bg-soft);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text-muted);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.result-animal-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: baseline;
+  color: var(--text);
+}
+
+.result-animal-pair .sep { color: var(--text-subtle); }
+
+.result-animal-note {
+  margin-top: 6px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.result-cta {
+  align-self: flex-start;
+  text-decoration: none;
+  margin-top: 8px;
+}
+
 /* ──────── footer ──────── */
 
 .footer {
