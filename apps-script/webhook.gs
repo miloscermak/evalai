@@ -169,15 +169,8 @@ function scoreY(a) {
   // Q6 — 1..5 lineárně −20..+20
   const q6 = a.q6 ? (a.q6 - 3) * 10 : 0;
 
-  // Q7 — kategorie
-  const Q7 = {
-    trust:      0,
-    skim:       5,
-    verify:    10,
-    rewrite:   -5,
-    disappoint: -15,
-  };
-  const q7 = Q7[a.q7] || 0;
+  // Q7 — 1..5 (vnímaná kvalita AI v oboru) → −14..+14
+  const q7 = a.q7 ? (a.q7 - 3) * 7 : 0;
 
   // Q8 — počet negativních obav × −3, "none" = +5
   const concerns = asArray(a.q8);
@@ -282,10 +275,10 @@ function buildClaudePrompt(animalSelf, reasonSelf, animalAi, reasonAi) {
     'Účastník workshopu o AI uvedl tato přirovnání:',
     '',
     '— K jakému zvířeti přirovnává sebe: "' + animalSelf + '"',
-    '  Důvod: "' + reasonSelf + '"',
+    '  Důvod: ' + (reasonSelf ? '"' + reasonSelf + '"' : '(neuvedeno — řiď se druhem zvířete)'),
     '',
     '— K jakému zvířeti přirovnává AI: "' + animalAi + '"',
-    '  Důvod: "' + reasonAi + '"',
+    '  Důvod: ' + (reasonAi ? '"' + reasonAi + '"' : '(neuvedeno — řiď se druhem zvířete)'),
     '',
     'Tvůj úkol: vrať JEDEN JSON objekt s těmito klíči:',
     '',
@@ -429,7 +422,7 @@ function testSubmission() {
       q4: 'multi',
       q5: ['long_prompt', 'custom_gpt', 'own_data', 'automation'],
       q6: 5,
-      q7: 'verify',
+      q7: 4,
       q8: ['hallucinations'],
       q9: 5,
       q10: {

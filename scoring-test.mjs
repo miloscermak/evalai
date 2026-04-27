@@ -32,8 +32,8 @@ function scoreX(a) {
 
 function scoreY(a) {
   const q6 = a.q6 ? (a.q6 - 3) * 10 : 0;
-  const Q7 = { trust: 0, skim: 5, verify: 10, rewrite: -5, disappoint: -15 };
-  const q7 = Q7[a.q7] || 0;
+  // Q7 — vnímaná kvalita AI v oboru, scale 1..5 → −14..+14
+  const q7 = a.q7 ? (a.q7 - 3) * 7 : 0;
   const concerns = asArray(a.q8);
   let q8;
   if (concerns.length === 1 && concerns[0] === 'none') q8 = 5;
@@ -51,7 +51,7 @@ const TESTS = [
       q3: ['chatgpt', 'claude', 'gemini', 'notebooklm', 'image', 'audio'],
       q4: 'multi',
       q5: ['long_prompt', 'custom_gpt', 'own_data', 'automation'],
-      q6: 5, q7: 'verify', q8: ['hallucinations'], q9: 5,
+      q6: 5, q7: 4, q8: ['hallucinations'], q9: 5,
     },
   },
   {
@@ -62,7 +62,7 @@ const TESTS = [
       q3: ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'notebooklm', 'image', 'audio', 'internal'],
       q4: 'multi',
       q5: ['long_prompt', 'custom_gpt', 'own_data', 'automation', 'api'],
-      q6: 5, q7: 'verify', q8: ['hallucinations', 'safety'], q9: 5,
+      q6: 5, q7: 4, q8: ['hallucinations', 'safety'], q9: 5,
     },
   },
   {
@@ -73,7 +73,7 @@ const TESTS = [
       q3: ['chatgpt', 'claude', 'gemini'],
       q4: 'multi',
       q5: ['long_prompt', 'custom_gpt', 'own_data'],
-      q6: 3, q7: 'rewrite', q8: ['hallucinations', 'safety', 'authenticity'], q9: 4,
+      q6: 3, q7: 2, q8: ['hallucinations', 'safety', 'authenticity'], q9: 4,
     },
   },
   {
@@ -84,7 +84,7 @@ const TESTS = [
       q3: ['chatgpt'],
       q4: 'no',
       q5: ['long_prompt'],
-      q6: 4, q7: 'skim', q8: ['none'], q9: 4,
+      q6: 4, q7: 4, q8: ['none'], q9: 4,
     },
   },
   {
@@ -95,7 +95,7 @@ const TESTS = [
       q3: ['none'],
       q4: 'no',
       q5: ['none'],
-      q6: 2, q7: 'disappoint', q8: ['unknown', 'authenticity'], q9: 2,
+      q6: 2, q7: 1, q8: ['unknown', 'authenticity'], q9: 2,
     },
   },
   {
@@ -106,7 +106,7 @@ const TESTS = [
       q3: ['none'],
       q4: 'no',
       q5: ['none'],
-      q6: 2, q7: 'disappoint', q8: ['ecology', 'authenticity', 'dependency'], q9: 2,
+      q6: 2, q7: 1, q8: ['ecology', 'authenticity', 'dependency'], q9: 2,
     },
   },
 ];

@@ -281,6 +281,7 @@
         btn.addEventListener('click', () => {
           state.answers[q.id] = btn.dataset.value;
           render();
+          autoAdvance(q);
         });
       });
     } else if (q.type === 'multi') {
@@ -292,6 +293,7 @@
         btn.addEventListener('click', () => {
           state.answers[q.id] = parseInt(btn.dataset.value, 10);
           render();
+          autoAdvance(q);
         });
       });
     } else if (q.type === 'animal') {
@@ -303,6 +305,18 @@
         });
       });
     }
+  }
+
+  // Po výběru u single/scale chvilku počkáme (vidíš svůj klik), pak posuneme.
+  // Guardujeme proti situaci, kdy uživatel během prodlevy klikl Zpět.
+  function autoAdvance(q) {
+    const idxBefore = state.currentIndex;
+    setTimeout(() => {
+      if (state.currentIndex === idxBefore && validate(q)) {
+        const isLast = q.id === 'q10';
+        if (isLast) submit(); else next();
+      }
+    }, 320);
   }
 
   function toggleMulti(q, btn) {
@@ -354,10 +368,9 @@
     }
     if (q.type === 'animal') {
       const obj = v || {};
+      // důvody jsou volitelné, jen samotná zvířata jsou povinná
       return obj.animalSelf && obj.animalSelf.trim().length > 0
-          && obj.reasonSelf && obj.reasonSelf.trim().length > 0
-          && obj.animalAi   && obj.animalAi.trim().length > 0
-          && obj.reasonAi   && obj.reasonAi.trim().length > 0;
+          && obj.animalAi   && obj.animalAi.trim().length > 0;
     }
     return false;
   }
@@ -450,7 +463,12 @@
   // ──────── thanks screen ────────
 
   function renderThanks() {
-    if (state.result) return renderResult(state.result);
+    // result screen jen pokud máme reálná data (score + archetype).
+    // Pokud server vrátil jen ok:true bez polí (např. starý webhook deploy),
+    // ukážeme fallback místo rozbité mapy s tečkou v (0,0).
+    if (state.result && state.result.archetype && typeof state.result.score_x === 'number') {
+      return renderResult(state.result);
+    }
 
     // fallback: server zapsal, ale odpověď se nepřečetla (CORS/network)
     const el = document.createElement('div');
