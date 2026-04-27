@@ -9,7 +9,7 @@
  */
 
 window.EVALAI_CONFIG = {
-  webhookUrl: '',
-  dashboardJsonUrl: '',
+  webhookUrl: 'https://script.google.com/macros/s/AKfycbxdnG9EIWRwf8mPPAXZPxmb6IQU_O2spp0wQyPQwfS8ae0KQPUC3qX38ARiHer8sBSGHw/exec',
+  dashboardJsonUrl: 'https://script.google.com/macros/s/AKfycbxdnG9EIWRwf8mPPAXZPxmb6IQU_O2spp0wQyPQwfS8ae0KQPUC3qX38ARiHer8sBSGHw/exec',
   version: '0.1.0',
 };
