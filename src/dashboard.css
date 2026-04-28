@@ -57,6 +57,27 @@
   color: var(--accent);
 }
 
+.btn-pill {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  font-family: inherit;
+  transition: all 200ms;
+}
+
+.btn-pill:hover {
+  background: var(--bg-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .dash-main {
   flex: 1;
   display: grid;

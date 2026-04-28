@@ -210,9 +210,133 @@
     }[c]));
   }
 
+  // ──────── export (JSON / Markdown) ────────
+
+  const ARCHETYPE_LABELS = {
+    optimistic_power_user: 'Optimistický power user',
+    realistic_power_user:  'Realistický power user',
+    pragmatic_user:        'Pragmatický uživatel',
+    beginner_enthusiast:   'Začátečník-nadšenec',
+    beginner_skeptic:      'Začátečník-skeptik',
+    manager_proxy:         'Manažer (proxy uživatel)',
+    unclear:               'Smíšený typ',
+  };
+
+  function quadrantOf(p) {
+    if (p.x >= 50 && p.y >= 50) return 'Optimistický power user';
+    if (p.x >= 50 && p.y <  50) return 'Realistický power user';
+    if (p.x <  50 && p.y >= 50) return 'Začátečník-nadšenec';
+    return 'Začátečník-skeptik';
+  }
+
+  function downloadFile(filename, content, mime) {
+    const blob = new Blob([content], { type: mime + ';charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportJson() {
+    if (!lastData.length) return;
+    const payload = {
+      workshop_id: workshop || null,
+      exported_at: new Date().toISOString(),
+      count: lastData.length,
+      points: lastData,
+    };
+    const slug = workshop || 'all';
+    downloadFile(`evalai-${slug}-${stamp()}.json`, JSON.stringify(payload, null, 2), 'application/json');
+  }
+
+  function exportMd() {
+    if (!lastData.length) return;
+    const lines = [];
+    const slug = workshop || 'všechny workshopy';
+    lines.push(`# EvalAI — ${slug}`);
+    lines.push('');
+    lines.push(`Exportováno: ${new Date().toLocaleString('cs-CZ')}`);
+    lines.push(`Účastníků: **${lastData.length}**`);
+    lines.push('');
+
+    // rozložení podle archetypu (z odpovědí Claude)
+    const byArch = {};
+    lastData.forEach(p => {
+      const k = ARCHETYPE_LABELS[p.archetype] || p.archetype || '(bez archetypu)';
+      byArch[k] = (byArch[k] || 0) + 1;
+    });
+    lines.push('## Archetypy');
+    lines.push('');
+    Object.keys(byArch).sort((a, b) => byArch[b] - byArch[a]).forEach(k => {
+      lines.push(`- ${k}: **${byArch[k]}**`);
+    });
+    lines.push('');
+
+    // rozložení podle kvadrantu (z X/Y)
+    const byQ = {};
+    lastData.forEach(p => {
+      const k = quadrantOf(p);
+      byQ[k] = (byQ[k] || 0) + 1;
+    });
+    lines.push('## Kvadranty');
+    lines.push('');
+    Object.keys(byQ).forEach(k => lines.push(`- ${k}: **${byQ[k]}**`));
+    lines.push('');
+
+    // outliers
+    const outliers = lastData.filter(p => p.outlier);
+    if (outliers.length) {
+      lines.push('## ⚑ Outlieři (animal posun ≥ 8)');
+      lines.push('');
+      outliers.forEach(p => {
+        lines.push(`- **${p.name || '?'}** — ${p.animal_self || '?'} × ${p.animal_ai || '?'}`);
+      });
+      lines.push('');
+    }
+
+    lines.push('## Účastníci');
+    lines.push('');
+    lastData
+      .slice()
+      .sort((a, b) => (b.x + b.y) - (a.x + a.y))
+      .forEach(p => {
+        const arch = ARCHETYPE_LABELS[p.archetype] || p.archetype || '';
+        lines.push(`### ${p.name || '(beze jména)'}${p.outlier ? ' ⚑' : ''}`);
+        lines.push('');
+        if (arch) lines.push(`**${arch}** · X = ${Math.round(p.x)} · Y = ${Math.round(p.y)}`);
+        else      lines.push(`X = ${Math.round(p.x)} · Y = ${Math.round(p.y)}`);
+        lines.push('');
+        if (p.animal_self || p.animal_ai) {
+          lines.push(`Já: *${p.animal_self || '?'}* × AI: *${p.animal_ai || '?'}*`);
+          lines.push('');
+        }
+        if (p.interpretation) {
+          lines.push(`> ${p.interpretation}`);
+          lines.push('');
+        }
+        if (p.animal_note) {
+          lines.push(`_Animal note:_ ${p.animal_note}`);
+          lines.push('');
+        }
+      });
+
+    downloadFile(`evalai-${(workshop || 'all')}-${stamp()}.md`, lines.join('\n'), 'text/markdown');
+  }
+
+  function stamp() {
+    const d = new Date();
+    return d.toISOString().slice(0, 16).replace(/[:T]/g, '-');
+  }
+
   // ──────── boot ────────
 
   refreshBtn.addEventListener('click', refresh);
+  document.getElementById('export-json-btn').addEventListener('click', exportJson);
+  document.getElementById('export-md-btn').addEventListener('click', exportMd);
   document.addEventListener('keydown', e => {
     if (e.key === 'r' || e.key === 'R') refresh();
   });

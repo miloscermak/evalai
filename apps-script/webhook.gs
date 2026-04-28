@@ -379,6 +379,8 @@ function readSubmissions(workshopFilter) {
       archetype: row[idx('archetype')],
       animal_self: animalSelf,
       animal_ai: animalAi,
+      animal_note: row[idx('animal_note')] || '',
+      interpretation: row[idx('interpretation')] || '',
       outlier: row[idx('outlier_flag')] === true || row[idx('outlier_flag')] === 'TRUE',
     });
   });
