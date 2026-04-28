@@ -8,17 +8,21 @@ Use case: na začátku workshopu Milos zobrazí QR kód, účastníci vyplní te
 
 ## Aktuální stav
 
-Fáze: **design schválen, implementace začíná.**
+Fáze: **v0.2 — workshop-ready, čeká se na ostrý test.** (Detailní stav po session 2026-04-28 je v [`HANDOFF.md`](HANDOFF.md).)
 
 - [x] Analýza 5 přepisů (~60 účastníků z workshopů ČEZ, Eon, ČSOB, PF Komplet)
-- [x] Design dotazníku, scoring formule, codebook zvířat (viz `docs/design.md`)
+- [x] Design dotazníku, scoring formule, codebook zvířat (viz `docs/design.md`, Q7 už nesedí)
 - [x] Scaffold projektu + git init
-- [ ] Frontend dotazníku (`src/index.html`)
-- [ ] Apps Script backend (zápis do Google Sheets)
-- [ ] LLM scoring pro animal otázky (Claude API)
-- [ ] Live dashboard (scatter plot, čte z Sheets)
-- [ ] Deploy na Netlify
-- [ ] První ostrý test na workshopu, kalibrace vah
+- [x] Frontend dotazníku (`src/index.html`) + auto-advance + result screen po submitu
+- [x] Apps Script backend (zápis do Google Sheets) + Claude tools API
+- [x] LLM scoring pro animal otázky (Claude API, `claude-sonnet-4-6`) + interpretace pro účastníka
+- [x] Live dashboard (SVG scatter plot, čte z Sheets, auto-refresh 10 s)
+- [x] Admin `/start` page s QR kódem a live counterem
+- [x] Export dat z dashboardu do JSON / MD
+- [x] Deploy na Netlify (`famous-torte-f2e74a.netlify.app`)
+- [ ] První ostrý test na workshopu
+- [ ] Re-kalibrace vah z reálných dat
+- [ ] Vlastní subdoména (volitelné)
 
 ---
 
