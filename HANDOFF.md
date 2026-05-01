@@ -1,8 +1,27 @@
 # EvalAI — Předávací zpráva
 
-**Aktualizace:** 2026-04-28
-**Předává:** Claude Code (Cowork session)
-**Stav:** kompletní v0.2 — backend i frontend živé, jeden konec-konce test prošel.
+**Aktualizace:** 2026-04-29 (z Cowork session)
+**Předává:** Claude (Cowork) → Claude Code
+**Stav:** v0.3 — kompletní rework Q3/Q5/Q6/Q7/Q9 + UX fix po submitu. Změny zatím **nejsou pushnuté ani redeploynuté.**
+
+---
+
+## ⚠️ POZOR — co Claude Code MUSÍ udělat hned
+
+Tato session udělala změny v `apps-script/webhook.gs` (scoring formule pro X/Y) a v `src/questions.js` (nové texty otázek a values). Backend a frontend musí jít synchronně, jinak nový frontend pošle hodnoty, které starý webhook neumí ohodnotit.
+
+**Konkrétně:**
+
+1. **Push do GitHubu** — `git push origin main`. Tím se Netlify auto-deployne nový frontend.
+2. **Manual redeploy Apps Scriptu** — toto Netlify NEUDĚLÁ:
+   - Otevři https://script.google.com → projekt EvalAI
+   - Otevři `webhook.gs` v editoru, zkopíruj sem celý obsah z `apps-script/webhook.gs` v repu (nebo jen sekce, co se změnily — `scoreX` a `scoreY`)
+   - Cmd-S (uložit)
+   - **Deploy → Manage deployments → existing deployment → Edit (tužka) → Version: New version → Deploy**
+   - URL ZŮSTÁVÁ STEJNÁ. Žádné `config.js` se nemění.
+3. **Smoke test** — vyplň jeden dotazník na dev workshop_id (`smoke-2026-04-29`) a zkontroluj Sheet, že nový řádek má smysluplné X/Y a všechny answer values jsou rozeznané (žádné NaN ani 0 v `score_x_raw` u člověka, který reálně něco používá).
+
+Pokud Apps Script redeploy zapomeneš → frontend pošle `q3: ['other']` a starý webhook to nezná → score_x bude nižší než má být. (V `webhook.gs` jsou legacy aliasy pro staré values, ale ne pro nové.)
 
 ---
 
@@ -19,9 +38,55 @@ EvalAI je webový dotazník (10 otázek, ~3 min) pro workshopy Inspiruj.se. Mapu
 - ✅ Smoke test (Miloš jako účastník) — submit → Sheet → result screen → dashboard → export
 
 **Co zbývá:**
-1. Vlastní subdoména (např. `dotaznik.inspiruj.se`) místo default Netlify URL
-2. První ostrý workshop a re-kalibrace vah z reálných dat
-3. (Volitelné) Update `docs/design.md` — Q7 byla výrazně předělána
+1. Push + Apps Script redeploy + smoke test (viz POZOR sekce výš)
+2. Vlastní subdoména (např. `dotaznik.inspiruj.se`) místo default Netlify URL
+3. První ostrý workshop a re-kalibrace vah z reálných dat
+4. (Volitelné) Update `docs/design.md` — Q3, Q5, Q6, Q7, Q9 jsou aktuálně mimo synchronizaci s `src/questions.js` a `apps-script/webhook.gs` (které jsou ground truth)
+
+---
+
+## Cowork session 2026-04-29 — co se změnilo
+
+Milos po tom, co testoval flow v UI, navrhl 5 úprav otázek a 1 UX fix. Implementováno v jednom commitu `feat: rework Q3/Q5/Q6/Q7/Q9 + computing screen po submitu`:
+
+**Q3 (nástroje):**
+- `internal` (label „Vlastní AI nástroj v práci") → `other` (label „Jiný AI nástroj"), pozice posunutá hned za Microsoft Copilot — chatboti drží pohromadě
+- Scoring: 8 b za `other`, plus zachovaný legacy alias `internal: 8` pro stará data v Sheet
+
+**Q5 (pokročilé techniky) — kompletní rework:**
+| Hodnota | Label | Body |
+|---|---|---|
+| `long_prompt` | Píšu prompty, často komplexní a promyšlené | 10 |
+| `chatbot_max` | Používám chatbot na maximum (projekty, deep research, plánované úkoly) | 15 |
+| `vibecoding` | Píšu vlastní aplikace (vibecoding) | 20 |
+| `automation` | Vytvářím automatizace s využitím různých nástrojů | 20 |
+| `agent` | Buduju asistenta nebo agenta, na kterého deleguju úkoly | 25 |
+| `none` | Nic z toho | 0 |
+- Cap zvednutý z 75 na 90 (sum všech 5 = 90)
+- Legacy aliasy `custom_gpt: 15`, `own_data: 15`, `api: 20` zachovány v Q5_ACTS pro stará data
+- **X_max nyní 280** (bylo 265) → normalizace v `scoreX` aktualizovaná: `Math.round(sum / 280 * 100)`
+
+**Q6 (PROHOZENO + nová formulace):**
+- Bylo: „Jak vidíš AI z pohledu příštích 5 let?" (1=ohrožení, 5=příležitost), váha (v-3)*10
+- Je: „AI bude do pěti let ve většině sofistikovaných dovedností stejně dobrá jako lidi." (zcela nesouhlasím → zcela souhlasím), **váha (v-3)*5 → ±10**
+- Logika: tahle otázka NENÍ čistě o postoji (souhlas může mít optimista i pesimista), proto slabší vážení
+
+**Q7 (PROHOZENO + nová formulace):**
+- Bylo: „Když se zeptám AI na něco ze svého oboru, jak kvalitní bývá odpověď?" (1=špatná, 5=dobrá), váha (v-3)*7
+- Je: „AI během příštích pěti let změní svět i můj život k lepšímu." (zcela nesouhlasím → zcela souhlasím), **váha (v-3)*10 → ±20**
+- Tohle je teď nejsilnější optimismus signál v dotazníku
+
+**Q9 (nová formulace + OBRÁCENÝ scoring):**
+- Bylo: „Mám pocit, že AI zvládnu osvojit a smysluplně využít." (self-efficacy, vyšší = optimismus), váha (v-3)*5
+- Je: „Používání AI čekají významná omezení a regulace, možná i zákazy — podobně jako třeba užívání drog." (zcela nesouhlasím → zcela souhlasím), **váha (3-v)*5 → ±10**
+- **Pozor:** vyšší souhlas = obava → pesimismus, proto OBRÁCENÝ směr `(3-v)*5` místo `(v-3)*5`. Klauzule self-efficacy ze scoringu úplně vypadla.
+
+**UX fix — computing screen po submitu:**
+- Před: po kliknutí „Odeslat" zůstal dotazník na obrazovce s tlačítkem „Odesílám…", lidé to nechápali a klikali znovu
+- Teď: state má nový flag `computing`. Po kliknutí Odeslat → currentIndex skočí rovnou na thanks screen, dotazník zmizí. Render zobrazí pulzující tři tečky + „Děkujeme za vyplnění. Teď se počítá tvůj výsledek…"
+- Když fetch doběhne → `computing=false`, render přejde buď na result screen (s mapou a interpretací), nebo na fallback „Hotovo, díky" + CTA na dashboard
+
+**Validace na 6 lidech z přepisů (`scoring-test.mjs`):** všichni padli do správných kvadrantů. Senta X=79/Y=+27 (top-right), Tomáš X=100/Y=+9 (top-right, mírně níž kvůli concerns), Pavel X=68/Y=−19 (real. power user), Lukáš X=16/Y=+20 (begin. enthusiast), Saša X=0/Y=−41 (begin. skeptic), Andrea X=0/Y=−44 (begin. skeptic).
 
 ---
 

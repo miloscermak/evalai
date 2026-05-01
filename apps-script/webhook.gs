@@ -141,24 +141,35 @@ function scoreX(a) {
   const Q3_TOOLS = {
     chatgpt: 5, claude: 5, gemini: 5, copilot: 5, perplexity: 5,
     notebooklm: 10, image: 10, audio: 10, video: 10,
+    other: 8,
+    // legacy alias pro stará submission před 2026-04-29 (label byl "Vlastní AI nástroj v práci")
     internal: 8,
     none: 0,
   };
   const Q4 = { no: 0, one: 20, multi: 40 };
+  // Q5 — od 2026-04-29 přepracováno. Hierarchie: prompty < chatbot na maximum
+  // < vibecoding/automatizace < agent (nejpokročilejší). Cap 90 = sum všech 5.
   const Q5_ACTS = {
-    long_prompt: 10, custom_gpt: 15, own_data: 15,
-    automation: 20, api: 15,
-    none: 0,
+    long_prompt: 10,
+    chatbot_max: 15,
+    vibecoding:  20,
+    automation:  20,
+    agent:       25,
+    // legacy aliasy pro stará submission
+    custom_gpt:  15,
+    own_data:    15,
+    api:         20,
+    none:         0,
   };
 
   const q1 = Q1[a.q1] || 0;
   const q2 = Q2[a.q2] || 0;
   const q3 = capSum(asArray(a.q3), Q3_TOOLS, 60);
   const q4 = Q4[a.q4] || 0;
-  const q5 = capSum(asArray(a.q5), Q5_ACTS, 75);
+  const q5 = capSum(asArray(a.q5), Q5_ACTS, 90);
 
-  const sum = q1 + q2 + q3 + q4 + q5;        // max 265
-  return Math.round((sum / 265) * 100);
+  const sum = q1 + q2 + q3 + q4 + q5;        // max 280
+  return Math.round((sum / 280) * 100);
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -166,11 +177,15 @@ function scoreX(a) {
 // ════════════════════════════════════════════════════════════════════════
 
 function scoreY(a) {
-  // Q6 — 1..5 lineárně −20..+20
-  const q6 = a.q6 ? (a.q6 - 3) * 10 : 0;
+  // Q6 — "AI bude do 5 let stejně dobrá jako lidi"
+  // Tahle otázka NENÍ čistě o postoji — měří víru v sílu AI. Souhlas mírně
+  // koreluje s optimismem (lidé, kteří věří v sílu AI, ji většinou přijímají),
+  // ale slabě. Vážíme jen ±10.
+  const q6 = a.q6 ? (a.q6 - 3) * 5 : 0;
 
-  // Q7 — 1..5 (vnímaná kvalita AI v oboru) → −14..+14
-  const q7 = a.q7 ? (a.q7 - 3) * 7 : 0;
+  // Q7 — "AI změní svět i můj život k lepšímu"
+  // Přímá otázka na valenci, nejsilnější optimismus signál. Vážíme ±20.
+  const q7 = a.q7 ? (a.q7 - 3) * 10 : 0;
 
   // Q8 — počet negativních obav × −3, "none" = +5
   const concerns = asArray(a.q8);
@@ -182,8 +197,9 @@ function scoreY(a) {
     q8 = -3 * negativeCount;
   }
 
-  // Q9 — 1..5 lineárně −10..+10
-  const q9 = a.q9 ? (a.q9 - 3) * 5 : 0;
+  // Q9 — "AI bude regulována jako drogy"
+  // OBRÁCENÝ směr: souhlas = AI je nebezpečná → pesimismus. Vážíme ±10.
+  const q9 = a.q9 ? (3 - a.q9) * 5 : 0;
 
   return clamp(q6 + q7 + q8 + q9, -50, 50);
 }

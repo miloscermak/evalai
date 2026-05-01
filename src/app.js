@@ -27,6 +27,7 @@
     startedAt: null,
     submitted: false,
     submitting: false,
+    computing: false,               // submit běží, server počítá výsledek
     submitError: null,
     result: null,                   // odpověď z webhooku po submitu (score, archetype, interpretation…)
   };
@@ -405,6 +406,7 @@
   async function submit() {
     if (state.submitting) return;
     state.submitting = true;
+    state.computing = true;
     state.submitError = null;
 
     const payload = {
@@ -417,12 +419,14 @@
       userAgent: navigator.userAgent,
     };
 
-    // re-render to show "Odesílám…"
+    // OKAMŽITĚ skok na thanks/computing screen — dotazník zmizí, aby
+    // uživatel nemohl odeslat znovu nebo upravovat odpovědi během fetch.
+    state.currentIndex = totalScreens - 1;
     render();
 
     if (!config.webhookUrl) {
       console.log('[EvalAI DEV MODE] payload:', payload);
-      await sleep(500);
+      await sleep(800);
       finishSubmit();
       return;
     }
@@ -451,6 +455,7 @@
 
   function finishSubmit() {
     state.submitting = false;
+    state.computing = false;
     state.submitted = true;
     state.currentIndex = totalScreens - 1;
     render();
@@ -463,14 +468,25 @@
   // ──────── thanks screen ────────
 
   function renderThanks() {
-    // result screen jen pokud máme reálná data (score + archetype).
-    // Pokud server vrátil jen ok:true bez polí (např. starý webhook deploy),
-    // ukážeme fallback místo rozbité mapy s tečkou v (0,0).
+    // 1) Computing — server právě zpracovává submission. Dotazník je pryč,
+    //    uživatel vidí jen "počítá se".
+    if (state.computing) {
+      const el = document.createElement('div');
+      el.className = 'screen thanks computing';
+      el.innerHTML = `
+        <div class="computing-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        <h1>Děkujeme za vyplnění.</h1>
+        <p>Teď se počítá tvůj výsledek…</p>
+      `;
+      return el;
+    }
+
+    // 2) Result screen — máme kompletní data (score + archetype).
     if (state.result && state.result.archetype && typeof state.result.score_x === 'number') {
       return renderResult(state.result);
     }
 
-    // fallback: server zapsal, ale odpověď se nepřečetla (CORS/network)
+    // 3) Fallback — server zapsal, ale odpověď se nepřečetla (CORS/network)
     const el = document.createElement('div');
     el.className = 'screen thanks';
     const dashUrl = 'dashboard.html' + (state.workshop ? '?w=' + encodeURIComponent(state.workshop) : '');

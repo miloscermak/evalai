@@ -1,6 +1,8 @@
 /* EvalAI — definice otázek
  *
- * Vychází z docs/design.md sekce 3.
+ * Vychází z docs/design.md sekce 3 (s úpravami z 2026-04-29: Q3 přejmenování,
+ * Q5 kompletní rework, Q6/Q7 prohození a nová formulace, Q9 nová formulace
+ * s obráceným scoringem).
  * Změna struktury otázek MUSÍ jít ruku v ruce s úpravou scoring formule
  * v apps-script/webhook.gs.
  */
@@ -45,12 +47,12 @@ window.EVALAI_QUESTIONS = [
       { value: 'claude',     label: 'Claude' },
       { value: 'gemini',     label: 'Gemini' },
       { value: 'copilot',    label: 'Microsoft Copilot' },
+      { value: 'other',      label: 'Jiný AI nástroj' },
       { value: 'perplexity', label: 'Perplexity' },
       { value: 'notebooklm', label: 'NotebookLM' },
       { value: 'image',      label: 'MidJourney / DALL-E / Sora / Veo' },
       { value: 'audio',      label: 'ElevenLabs / Suno' },
       { value: 'video',      label: 'HeyGen / Synthesia' },
-      { value: 'internal',   label: 'Vlastní AI nástroj v práci' },
       { value: 'none',       label: 'Žádný', exclusive: true },
     ],
   },
@@ -75,10 +77,10 @@ window.EVALAI_QUESTIONS = [
     type: 'multi',
     options: [
       { value: 'long_prompt', label: 'Píšu prompty, často komplexní a promyšlené' },
-      { value: 'custom_gpt',  label: 'Použil/a custom GPT, Project nebo Gem' },
-      { value: 'own_data',    label: 'Nahrál/a AI vlastní data (PDF, dokumenty, audio)' },
-      { value: 'automation',  label: 'Postavil/a AI automatizaci nebo agenta' },
-      { value: 'api',         label: 'Použil/a AI API přes kód (vibe coding nebo skutečně)' },
+      { value: 'chatbot_max', label: 'Používám chatbot na maximum (projekty, deep research, plánované úkoly)' },
+      { value: 'vibecoding',  label: 'Píšu vlastní aplikace (vibecoding)' },
+      { value: 'automation',  label: 'Vytvářím automatizace s využitím různých nástrojů' },
+      { value: 'agent',       label: 'Buduju asistenta nebo agenta, na kterého deleguju úkoly' },
       { value: 'none',        label: 'Nic z toho', exclusive: true },
     ],
   },
@@ -86,23 +88,23 @@ window.EVALAI_QUESTIONS = [
     id: 'q6',
     section: 'Postoj',
     n: 6,
-    title: 'Jak vidíš AI z pohledu příštích 5 let?',
+    title: 'AI bude do pěti let ve většině sofistikovaných dovedností stejně dobrá jako lidi.',
     type: 'scale',
     min: 1,
     max: 5,
-    leftLabel: 'Spíš ohrožení',
-    rightLabel: 'Velkou příležitost',
+    leftLabel: 'Zcela nesouhlasím',
+    rightLabel: 'Zcela souhlasím',
   },
   {
     id: 'q7',
     section: 'Postoj',
     n: 7,
-    title: 'Když se zeptám AI na něco ze svého oboru, jak kvalitní bývá odpověď?',
+    title: 'AI během příštích pěti let změní svět i můj život k lepšímu.',
     type: 'scale',
     min: 1,
     max: 5,
-    leftLabel: 'Často špatná',
-    rightLabel: 'Většinou dobrá',
+    leftLabel: 'Zcela nesouhlasím',
+    rightLabel: 'Zcela souhlasím',
   },
   {
     id: 'q8',
@@ -128,12 +130,12 @@ window.EVALAI_QUESTIONS = [
     id: 'q9',
     section: 'Postoj',
     n: 9,
-    title: 'Mám pocit, že AI zvládnu osvojit a smysluplně využít.',
+    title: 'Používání AI čekají významná omezení a regulace, možná i zákazy — podobně jako třeba užívání drog.',
     type: 'scale',
     min: 1,
     max: 5,
-    leftLabel: 'Určitě ne',
-    rightLabel: 'Určitě ano',
+    leftLabel: 'Zcela nesouhlasím',
+    rightLabel: 'Zcela souhlasím',
   },
   {
     id: 'q10',
