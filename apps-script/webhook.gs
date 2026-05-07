@@ -83,25 +83,26 @@ function processSubmission(payload) {
   const xRaw = scoreX(a);
   const yRaw = scoreY(a);
 
-  // animal modifikátor přes Claude API + interpretace
-  let animal = { x_mod: 0, y_mod: 0, archetype: '', note: '', interpretation: '' };
+  // Tvrdý scoring → finální pozice. Zvířata na X/Y NEMAJÍ vliv.
+  const xFinal = clamp(xRaw, 0, 100);
+  const yFinal = clamp(yRaw + 50, 0, 100);  // yRaw je -50..+50, normalizujeme na 0..100
+  const quadrant = deriveQuadrant(xFinal, yFinal);
+
+  // Claude píše dvě textová pole: tvrdé hodnocení dotazníku + měkkou
+  // poetickou úvahu nad kombinací zvířat. Žádné modifikátory, žádný
+  // alternativní archetype. Pokud API selže, použijeme prázdné stringy.
+  let llm = { interpretation: '', animal_note: '' };
   try {
-    if (a.q10) animal = scoreAnimal(a.q10);
+    llm = generateFeedback(a, xFinal, yFinal, quadrant);
   } catch (err) {
-    console.warn('Claude API call failed, falling back to neutral:', err);
-    animal.note = '[Claude API error: ' + err + ']';
+    console.warn('Claude API call failed, falling back to empty:', err);
+    llm.animal_note = '[Claude API error: ' + err + ']';
   }
-
-  const xFinal = clamp(xRaw + animal.x_mod, 0, 100);
-  // Y_raw je v rozsahu cca -50..+50 → normalizace na 0..100 pro dashboard
-  const yNorm = clamp(yRaw + 50, 0, 100);
-  const yFinal = clamp(yNorm + animal.y_mod, 0, 100);
-
-  // outlier: animal posunul Y o víc než 15 bodů — stojí za pohovor
-  const outlier = Math.abs(animal.y_mod) >= 8;
 
   const submission_id = generateId();
 
+  // Sheet schema držíme stabilní (kvůli starým řádkům a dashboard čtení).
+  // animal_x_mod / animal_y_mod jsou nově vždy 0, archetype = kvadrant.
   const row = [
     submission_id,
     payload.timestamp || new Date().toISOString(),
@@ -110,9 +111,9 @@ function processSubmission(payload) {
     payload.durationSec || '',
     JSON.stringify(a),
     xRaw, yRaw,
-    animal.archetype, animal.x_mod, animal.y_mod, animal.note,
-    xFinal, yFinal, outlier,
-    animal.interpretation || '',
+    quadrant, 0, 0, llm.animal_note,
+    xFinal, yFinal, false,
+    llm.interpretation,
     (payload.userAgent || '').slice(0, 200),
     payload.version || '',
   ];
@@ -123,12 +124,19 @@ function processSubmission(payload) {
     submission_id,
     score_x: xFinal,
     score_y: yFinal,
-    archetype: animal.archetype,
-    interpretation: animal.interpretation,
+    archetype: quadrant,
+    interpretation: llm.interpretation,
     animal_self: a.q10 ? a.q10.animalSelf || '' : '',
     animal_ai:   a.q10 ? a.q10.animalAi   || '' : '',
-    animal_note: animal.note,
+    animal_note: llm.animal_note,
   };
+}
+
+function deriveQuadrant(x, y) {
+  if (x >= 50 && y >= 50) return 'optimistic_power_user';
+  if (x >= 50 && y <  50) return 'realistic_power_user';
+  if (x <  50 && y >= 50) return 'beginner_enthusiast';
+  return 'beginner_skeptic';
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -205,43 +213,31 @@ function scoreY(a) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// SCORING — Animal (Claude API)
+// FEEDBACK — Claude píše interpretaci (z tvrdých dat) + animal note (z Q10)
 // ════════════════════════════════════════════════════════════════════════
+//
+// Metodika: kvadrant se odvozuje deterministicky z X/Y (Q1–Q9). Claude tu
+// pozici NEMĚNÍ — jen ji slovně okomentuje a u animal note kreativně rozvine
+// vztah obou zvířat. Zvířata jsou výslovně „měkká věda", ne klasifikační vstup.
 
-function scoreAnimal(q10) {
+function generateFeedback(answers, xFinal, yFinal, quadrant) {
   const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY není v Script Properties.');
   }
 
-  const animalSelf = String(q10.animalSelf || '').slice(0, 60);
-  const reasonSelf = String(q10.reasonSelf || '').slice(0, 400);
-  const animalAi   = String(q10.animalAi   || '').slice(0, 60);
-  const reasonAi   = String(q10.reasonAi   || '').slice(0, 400);
+  const prompt = buildFeedbackPrompt(answers, xFinal, yFinal, quadrant);
 
-  const prompt = buildClaudePrompt(animalSelf, reasonSelf, animalAi, reasonAi);
-
-  // Tools API vynutí strukturovaný výstup — Claude musí zavolat tool
-  // se správnými typy, žádný JSON parsing hazard.
   const tool = {
-    name: 'record_animal_score',
-    description: 'Zaznamenej kódování animal metafory + interpretaci pro účastníka.',
+    name: 'record_feedback',
+    description: 'Zaznamenej slovní hodnocení účastníka — interpretaci dotazníku a poetickou úvahu nad zvířaty.',
     input_schema: {
       type: 'object',
       properties: {
-        animal_x_mod: { type: 'integer', minimum: -5,  maximum: 5  },
-        animal_y_mod: { type: 'integer', minimum: -10, maximum: 10 },
-        archetype: {
-          type: 'string',
-          enum: [
-            'optimistic_power_user', 'realistic_power_user', 'pragmatic_user',
-            'beginner_enthusiast', 'beginner_skeptic', 'manager_proxy', 'unclear',
-          ],
-        },
-        note: { type: 'string', maxLength: 300 },
-        interpretation: { type: 'string', maxLength: 400 },
+        interpretation: { type: 'string', maxLength: 700 },
+        animal_note:    { type: 'string', maxLength: 700 },
       },
-      required: ['animal_x_mod', 'animal_y_mod', 'archetype', 'note', 'interpretation'],
+      required: ['interpretation', 'animal_note'],
     },
   };
 
@@ -254,9 +250,9 @@ function scoreAnimal(q10) {
     },
     payload: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: 1024,
+      max_tokens: 1500,
       tools: [tool],
-      tool_choice: { type: 'tool', name: 'record_animal_score' },
+      tool_choice: { type: 'tool', name: 'record_feedback' },
       messages: [{ role: 'user', content: prompt }],
     }),
     muteHttpExceptions: true,
@@ -275,66 +271,97 @@ function scoreAnimal(q10) {
     throw new Error('Claude nevrátil tool_use blok: ' + body.slice(0, 300));
   }
 
-  const input = toolUse.input;
   return {
-    x_mod:          clamp(input.animal_x_mod || 0, -5, 5),
-    y_mod:          clamp(input.animal_y_mod || 0, -10, 10),
-    archetype:      String(input.archetype      || '').slice(0, 80),
-    note:           String(input.note           || '').slice(0, 300),
-    interpretation: String(input.interpretation || '').slice(0, 400),
+    interpretation: String(toolUse.input.interpretation || '').slice(0, 700),
+    animal_note:    String(toolUse.input.animal_note    || '').slice(0, 700),
   };
 }
 
-function buildClaudePrompt(animalSelf, reasonSelf, animalAi, reasonAi) {
+function buildFeedbackPrompt(a, xFinal, yFinal, quadrant) {
+  // Lidsky čitelné popisky odpovědí pro Claude (ať si nemusí domýšlet kódy).
+  const Q1 = { never: 'AI nikdy nepoužil(a)', lt6m: 'méně než 6 měsíců', '6m_2y': '6 měsíců až 2 roky', gt2y: 'víc než 2 roky' };
+  const Q2 = { never: 'nepoužívá', monthly: 'měsíčně', weekly: 'týdně', daily: 'denně', always: 'několikrát denně' };
+  const Q3 = {
+    chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Microsoft Copilot',
+    perplexity: 'Perplexity', notebooklm: 'NotebookLM', image: 'generování obrázků',
+    audio: 'generování audia', video: 'generování videa', other: 'jiný AI nástroj',
+    internal: 'vlastní firemní AI nástroj', none: 'žádný',
+  };
+  const Q4 = { no: 'jen text', one: 'jednu modalitu navíc', multi: 'více modalit (obrázek/audio/video/data)' };
+  const Q5 = {
+    long_prompt: 'píše komplexní prompty', chatbot_max: 'využívá chatboty na maximum (projekty, deep research)',
+    vibecoding: 'vibecoduje vlastní aplikace', automation: 'staví automatizace',
+    agent: 'buduje agenty / asistenty na delegování úkolů',
+    custom_gpt: 'staví custom GPT', own_data: 'pracuje s vlastními daty', api: 'volá API přímo',
+    none: 'nic z pokročilých technik',
+  };
+  const Q8 = {
+    hallucinations: 'halucinace / chybné odpovědi', privacy: 'soukromí a data',
+    jobs: 'dopad na pracovní místa', authenticity: 'autenticita a důvěra v obsah',
+    ethics: 'etické otázky', dependence: 'závislost / atrofie dovedností',
+    none: 'žádné výrazné obavy',
+  };
+  const SCALE = { 1: '1 (zcela nesouhlasím)', 2: '2', 3: '3 (neutrálně)', 4: '4', 5: '5 (zcela souhlasím)' };
+
+  const list = (arr, dict) => (Array.isArray(arr) ? arr : [arr]).filter(Boolean).map(v => dict[v] || v).join(', ');
+
+  const q10 = a.q10 || {};
+  const animalSelf = String(q10.animalSelf || '').slice(0, 80);
+  const reasonSelf = String(q10.reasonSelf || '').slice(0, 400);
+  const animalAi   = String(q10.animalAi   || '').slice(0, 80);
+  const reasonAi   = String(q10.reasonAi   || '').slice(0, 400);
+
+  const QUAD_LABEL = {
+    optimistic_power_user: 'Optimistický power user (vysoká zkušenost, optimismus)',
+    realistic_power_user:  'Realistický power user (vysoká zkušenost, skepticky střízlivý postoj)',
+    beginner_enthusiast:   'Začátečník-nadšenec (nízká zkušenost, optimismus)',
+    beginner_skeptic:      'Začátečník-skeptik (nízká zkušenost, skeptický postoj)',
+  };
+
   return [
-    'Jsi expert na kvalitativní kódování projektivních přirovnání.',
-    'Účastník workshopu o AI uvedl tato přirovnání:',
+    'Jsi zkušený lektor AI, který hodnotí účastníka workshopu.',
+    'Tvým úkolem je napsat dvě krátké pasáže slovního hodnocení.',
     '',
-    '— K jakému zvířeti přirovnává sebe: "' + animalSelf + '"',
-    '  Důvod: ' + (reasonSelf ? '"' + reasonSelf + '"' : '(neuvedeno — řiď se druhem zvířete)'),
+    '## Tvrdá data z dotazníku (zdroj klasifikace)',
     '',
-    '— K jakému zvířeti přirovnává AI: "' + animalAi + '"',
-    '  Důvod: ' + (reasonAi ? '"' + reasonAi + '"' : '(neuvedeno — řiď se druhem zvířete)'),
+    '- Q1 zkušenost: ' + (Q1[a.q1] || a.q1 || '?'),
+    '- Q2 frekvence: ' + (Q2[a.q2] || a.q2 || '?'),
+    '- Q3 nástroje: ' + (list(a.q3, Q3) || '—'),
+    '- Q4 modality: ' + (Q4[a.q4] || a.q4 || '?'),
+    '- Q5 pokročilé techniky: ' + (list(a.q5, Q5) || '—'),
+    '- Q6 „AI bude do 5 let stejně dobrá jako lidi": ' + (SCALE[a.q6] || '?'),
+    '- Q7 „AI změní svět i můj život k lepšímu": ' + (SCALE[a.q7] || '?'),
+    '- Q8 obavy: ' + (list(a.q8, Q8) || '—'),
+    '- Q9 „AI by měla být regulována jako drogy": ' + (SCALE[a.q9] || '?'),
     '',
-    'Tvůj úkol: vrať JEDEN JSON objekt s těmito klíči:',
+    '## Vypočítané skóre (deterministicky z Q1–Q9, nehýbej s ním)',
     '',
-    '  animal_x_mod: integer od -5 do +5',
-    '    Modifikátor osy X (zkušenost / agency vůči AI).',
-    '    Pravidla:',
-    '    +3 až +5: dravec/inteligent (lev, tygr, vlk, žralok, sova, krkavec) S důvodem o agenci, ovládání, dravosti.',
-    '    +1 až +2: velcí inteligentní (slon, kůň) nebo jasně sebevědomé přirovnání.',
-    '    0: pes, kočka (nejčastější neutrální volby), bobr, mravenec.',
-    '    -1 až -3: pomalí/opatrní (želva, hroch, krtek, lenochod) — pasivita, opatrnost.',
-    '    -3 až -5: plyšáci/mazlíčci (mopsík, plyšový méďa, "chlupatá kočka") — zranitelnost, malá agency.',
-    '    Důvod má prioritu nad druhem zvířete.',
+    '- X (zkušenost, 0–100): **' + xFinal + '**',
+    '- Y (postoj, 0–100; 50 = neutrál): **' + yFinal + '**',
+    '- Kvadrant: **' + (QUAD_LABEL[quadrant] || quadrant) + '**',
     '',
-    '  animal_y_mod: integer od -10 do +10',
-    '    Modifikátor osy Y (postoj k AI — pesimismus/optimismus).',
-    '    Pravidla:',
-    '    +6 až +10: pomáhající druzi (parťák, věrný pes, asistenční pes, delfín jako přítel, moudrá želva, slon-paměť).',
-    '    +1 až +5: kolektivní inteligence (mraveniště, úl) jako fascinace, ne hrozba.',
-    '    0: chobotnice/kraken s neutrálním nebo "geniální" popisem (oblíbená neutrální default volba).',
-    '    -1 až -3: apex predator (tygr, lev, drak) jako "síla, kterou je třeba respektovat".',
-    '    -4 až -6: chytří podvodníci (liška, chameleon, krkavec, had) s důvodem o nedůvěře, "lživosti", vychytralosti.',
-    '    -7 až -10: mýtické nebezpečné nebo existenciální (krakatice "co sežere parník", sedmihlavý drak, Lucifer, HAL 9000, Eva z Ex Machina, mloci z Čapka, virus, "šílený zhluk buněk", chobotnice s důvodem o "strkání prstů kam nemá", neovládatelnost).',
-    '    POZOR: stejné zvíře (typicky chobotnice) může být +0 i -7 podle důvodu.',
-    '    POZOR: chytrá AI = pozitivní jen pokud důvod naznačuje partnerství; pokud "zaskočí" nebo "vychytralá", je to negativní.',
+    '## Měkká data — projektivní zvířata (Q10)',
     '',
-    '  archetype: jeden ze stringů:',
-    '    "optimistic_power_user", "realistic_power_user", "pragmatic_user",',
-    '    "beginner_enthusiast", "beginner_skeptic", "manager_proxy", "unclear"',
+    '- Sebe přirovnává k: "' + (animalSelf || '—') + '"',
+    '  Důvod: ' + (reasonSelf ? '"' + reasonSelf + '"' : '(neuvedeno)'),
+    '- AI přirovnává k: "' + (animalAi || '—') + '"',
+    '  Důvod: ' + (reasonAi ? '"' + reasonAi + '"' : '(neuvedeno)'),
     '',
-    '  note: jedna stručná věta v češtině (max 200 znaků), proč jsi modifikátor takhle určil.',
-    '    Cituj klíčové slovo z důvodu, ne jen druh zvířete.',
+    '## Co napsat',
     '',
-    '  interpretation: 2–3 věty v češtině, oslovuj účastníka „ty" (tykáš, neformálně, ale s respektem).',
-    '    Shrň, jaký typ uživatele AI je (vycházej z archetype) a vyzdvihni jeden konkrétní postřeh',
-    '    z jeho přirovnání. Buď konkrétní, ne generický. Žádné fráze „je vidět, že…", „určitě...".',
-    '    Žádný banální závěr typu „pokračuj v dobré práci". Max 400 znaků. Smí být i mírně provokativní.',
+    'Vyplň tool record_feedback. Oslovuj účastníka „ty" (neformálně, ale s respektem).',
+    'Žádné fráze typu „je vidět, že…", „určitě…", „pokračuj v dobré práci". Buď konkrétní, ne generický.',
     '',
-    'PRAVIDLO ROZPORU: pokud druh zvířete a důvod ukazují jinam, řiď se důvodem.',
+    '### Pole "interpretation" (3–4 věty, max 700 znaků) — TVRDÁ ANALÝZA',
+    'Vychází VÝHRADNĚ z Q1–Q9 a vypočítaného kvadrantu. Zvířata sem nepleť.',
+    '- Pojmenuj typ uživatele jednou větou (drž se kvadrantu).',
+    '- Vyzdvihni 1 konkrétní signál z odpovědí (např. konkrétní nástroje v Q3, pokročilá technika z Q5, obavy z Q8, nebo rozpor mezi Q6/Q7/Q9).',
+    '- Přidej 1–2 věty s konkrétním doporučením, kam dál směřovat používání AI — na míru tomu, co reálně dělá. Doporučení musí být akční, ne floskule.',
     '',
-    'Zavolej tool record_animal_score s vyplněnými hodnotami.',
+    '### Pole "animal_note" (3–4 věty, max 700 znaků) — POETICKÁ ÚVAHA',
+    'Tady máš volnost. Uvažuj nad VZTAHEM mezi oběma zvířaty (sebe × AI) a propoj to s tím, co o člověku víš z tvrdých dat. Můžeš si dovolit metaforu, malou teorii, lehkou provokaci. Cílem je čtenáře pobavit a překvapit, ne klasifikovat. Tohle je explicitně „slabá věda" — žádná tvrzení o typu uživatele, žádné předpovědi. Jen poetická pointa.',
+    '',
+    'Zavolej tool record_feedback s oběma poli vyplněnými.',
   ].join('\n');
 }
 
