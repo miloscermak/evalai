@@ -19,17 +19,16 @@ Fáze: **v0.2 — workshop-ready, čeká se na ostrý test.** (Detailní stav po
 - [x] Live dashboard (SVG scatter plot, čte z Sheets, auto-refresh 10 s)
 - [x] Admin `/start` page s QR kódem a live counterem
 - [x] Export dat z dashboardu do JSON / MD
-- [x] Deploy na Netlify (`famous-torte-f2e74a.netlify.app`)
+- [x] Deploy na Netlify (`famous-torte-f2e74a.netlify.app`) + vlastní doména `kdojsem.inspiruj.se`
 - [ ] První ostrý test na workshopu
 - [ ] Re-kalibrace vah z reálných dat
-- [ ] Vlastní subdoména (volitelné)
 
 ---
 
 ## Stack
 
 - **Frontend:** vanilla HTML + JS (single-page form), bez frameworku, bez build stepu. Mobile-first, čeština.
-- **Hosting:** Netlify, build z GitHub repa, auto-deploy z `main`.
+- **Hosting:** Netlify, build z GitHub repa, auto-deploy z `main`. Produkční URL: `https://kdojsem.inspiruj.se` (Netlify default `famous-torte-f2e74a.netlify.app` zůstává funkční).
 - **Backend:** Google Apps Script jako webhook → zápis do Google Sheets na Milošově osobním Google účtu.
 - **LLM scoring:** Claude API. Volá se z Apps Script po submitu, hodnotí jen Q10 (zvíře + důvod), vrací JSON s modifikátory + archetype.
 - **Dashboard:** druhá HTML stránka, čte z Sheets přes published JSON. Auto-refresh 10 s. Knihovna na scatter plot bude zvolena při stavbě (pravděpodobně Chart.js nebo D3, podle toho co bude lehčí).
@@ -73,9 +72,9 @@ Prázdné složky se zatím nezakládají, vzniknou při prvním souboru v nich.
 
 ### Workshop flow (cílový)
 1. Milos vygeneruje workshop_id (např. `cez-2026-04-27`)
-2. Zobrazí QR → `dotaznik.inspiruj.se/?w=cez-2026-04-27`
+2. Zobrazí QR → `kdojsem.inspiruj.se/?w=cez-2026-04-27`
 3. Účastníci vyplní telefonem (~3 min)
-4. Milos přepne na `dotaznik.inspiruj.se/dashboard?w=cez-2026-04-27`
+4. Milos přepne na `kdojsem.inspiruj.se/dashboard?w=cez-2026-04-27`
 5. Body naskakují v reálném čase, hover ukáže jméno + zvíře
 
 ---
@@ -115,7 +114,6 @@ Prázdné složky se zatím nezakládají, vzniknou při prvním souboru v nich.
 
 ## Otevřené otázky (k vyřešení před / při implementaci)
 
-1. **Doména** – `dotaznik.inspiruj.se`? `mapa.inspiruj.se`? Nebo dočasně Netlify subdoména do prvního testu?
 2. **Branding** – mám použít Inspiruj.se barvy/font/logo? Pošle Milos brand guideline?
 3. **Claude API klíč** – Milos má existující Anthropic účet, nebo vytvoří nový? Klíč přidáme do Apps Script Properties.
 4. **Workshop_id** – ručně do URL při sdílení QR, nebo dropdown v admin view? První verze: ručně do URL.
