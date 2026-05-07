@@ -208,7 +208,7 @@ function scoreY(a) {
     q8 = -3 * negativeCount;
   }
 
-  // Q9 — "AI bude regulována jako drogy"
+  // Q9 — "Vývoj a používání AI bude třeba tvrdě regulovat a omezovat"
   // OBRÁCENÝ směr: souhlas = AI je nebezpečná → pesimismus. Vážíme ±10.
   const q9 = a.q9 ? (3 - a.q9) * 5 : 0;
 
@@ -335,7 +335,7 @@ function buildFeedbackPrompt(a, xFinal, yFinal, quadrant) {
     '- Q6 „AI bude do 5 let stejně dobrá jako lidi": ' + (SCALE[a.q6] || '?'),
     '- Q7 „AI změní svět i můj život k lepšímu": ' + (SCALE[a.q7] || '?'),
     '- Q8 obavy: ' + (list(a.q8, Q8) || '—'),
-    '- Q9 „AI by měla být regulována jako drogy": ' + (SCALE[a.q9] || '?'),
+    '- Q9 „Vývoj a používání AI bude třeba tvrdě regulovat a omezovat": ' + (SCALE[a.q9] || '?'),
     '',
     '## Vypočítané skóre (deterministicky z Q1–Q9, nehýbej s ním)',
     '',

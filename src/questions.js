@@ -130,7 +130,7 @@ window.EVALAI_QUESTIONS = [
     id: 'q9',
     section: 'Postoj',
     n: 9,
-    title: 'Používání AI čekají významná omezení a regulace, možná i zákazy — podobně jako třeba užívání drog.',
+    title: 'Vývoj a používání AI bude třeba tvrdě regulovat a omezovat.',
     type: 'scale',
     min: 1,
     max: 5,
