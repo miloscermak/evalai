@@ -37,6 +37,7 @@ const SHEET_HEADERS = [
   'archetype', 'animal_x_mod', 'animal_y_mod', 'animal_note',
   'score_x_final', 'score_y_final', 'outlier_flag',
   'interpretation',
+  'age', 'education', 'field', 'gender',
   'user_agent', 'version',
 ];
 
@@ -103,6 +104,7 @@ function processSubmission(payload) {
 
   // Sheet schema držíme stabilní (kvůli starým řádkům a dashboard čtení).
   // animal_x_mod / animal_y_mod jsou nově vždy 0, archetype = kvadrant.
+  const demo = a.q11 || {};
   const row = [
     submission_id,
     payload.timestamp || new Date().toISOString(),
@@ -114,6 +116,7 @@ function processSubmission(payload) {
     quadrant, 0, 0, llm.animal_note,
     xFinal, yFinal, false,
     llm.interpretation,
+    demo.age || '', demo.education || '', demo.field || '', demo.gender || '',
     (payload.userAgent || '').slice(0, 200),
     payload.version || '',
   ];

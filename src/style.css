@@ -288,6 +288,65 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
   font-size: 12px;
 }
 
+/* ── Demografická obrazovka (q11) ─────────────────────────────── */
+
+.demographic-group {
+  margin-top: 20px;
+}
+
+.demographic-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.demographic-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.demographic-option {
+  padding: 8px 14px;
+  font-size: 14px;
+  border-radius: 999px;
+  background: var(--bg-card, #fff);
+  border: 1.5px solid var(--border, #e5e7eb);
+  color: var(--text, #171717);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.demographic-option:hover {
+  border-color: var(--accent, #0d9488);
+}
+
+.demographic-option.selected {
+  background: var(--accent, #0d9488);
+  border-color: var(--accent, #0d9488);
+  color: #fff;
+}
+
+.demographics-skip {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--text-subtle, #888);
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.link-btn:hover {
+  color: var(--accent, #0d9488);
+}
+
 .field input,
 .field textarea {
   width: 100%;

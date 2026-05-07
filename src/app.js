@@ -1,7 +1,7 @@
 /* EvalAI dotazník — frontend logika
  *
  * State machine:
- *   welcome → q1 → q2 → … → q10 → thanks
+ *   welcome → q1 → q2 → … → q10 → q11 (demografie, volitelné) → thanks
  *
  * Skóre se NEPOČÍTÁ na frontendu — všechny syrové odpovědi jdou na webhook
  * a Apps Script provede scoring + animal modifikátor přes Claude API.
@@ -169,26 +169,47 @@
       body = renderScale(q);
     } else if (q.type === 'animal') {
       body = renderAnimal(q);
+    } else if (q.type === 'demographics') {
+      body = renderDemographics(q);
     }
 
-    const isLast = q.id === 'q10';
+    const isLast = q.id === 'q11';
+    const isDemographics = q.type === 'demographics';
+    const sectionLabel = isDemographics
+      ? `${q.section} · nepovinné`
+      : `${q.section} · otázka ${q.n} z 10`;
+    const primaryLabel = isLast
+      ? (state.submitting ? 'Odesílám…' : 'Pokračovat k výsledku')
+      : 'Pokračovat';
 
     el.innerHTML = `
-      <div class="section-tag">${escapeHtml(q.section)} · otázka ${q.n} z 10</div>
+      <div class="section-tag">${escapeHtml(sectionLabel)}</div>
       <h2 class="q-title">${escapeHtml(q.title)}</h2>
       ${q.subtitle ? `<p class="q-subtitle">${escapeHtml(q.subtitle)}</p>` : ''}
       ${body}
       <div class="error-msg" id="error-msg"></div>
       <div class="nav">
         <button class="btn btn-secondary" id="back-btn" type="button" aria-label="Zpět">←</button>
-        <button class="btn btn-primary" id="next-btn" type="button">
-          ${isLast ? (state.submitting ? 'Odesílám…' : 'Odeslat') : 'Pokračovat'}
-        </button>
+        <button class="btn btn-primary" id="next-btn" type="button">${primaryLabel}</button>
       </div>
+      ${isDemographics ? `
+        <div class="demographics-skip">
+          <button class="link-btn" id="skip-btn" type="button">Přeskočit a rovnou na výsledek</button>
+        </div>
+      ` : ''}
     `;
 
     el.querySelector('#back-btn').addEventListener('click', back);
     el.querySelector('#next-btn').addEventListener('click', () => handleNext(q, el));
+    const skipBtn = el.querySelector('#skip-btn');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', () => {
+        // Přeskočit = vůbec demografická data nevyplnit (q11 zůstane undefined).
+        // Apps Script tomu rozumí — uloží prázdné kategorie.
+        delete state.answers[q.id];
+        submit();
+      });
+    }
 
     attachQuestionHandlers(q, el);
 
@@ -283,6 +304,30 @@
     `;
   }
 
+  // ──────── demographics renderer ────────
+
+  function renderDemographics(q) {
+    const current = state.answers[q.id] || {};
+    return q.fields.map(f => {
+      const selectedValue = current[f.key] || '';
+      const opts = f.options.map(opt => {
+        const isSelected = selectedValue === opt.value;
+        return `
+          <button class="option demographic-option ${isSelected ? 'selected' : ''}"
+                  data-field="${f.key}" data-value="${opt.value}" type="button">
+            ${escapeHtml(opt.label)}
+          </button>
+        `;
+      }).join('');
+      return `
+        <div class="demographic-group">
+          <div class="demographic-label">${escapeHtml(f.label)}</div>
+          <div class="demographic-options">${opts}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
   // ──────── handlers per question type ────────
 
   function attachQuestionHandlers(q, el) {
@@ -314,6 +359,15 @@
           obj[input.dataset.key] = e.target.value;
         });
       });
+    } else if (q.type === 'demographics') {
+      const obj = state.answers[q.id] || {};
+      state.answers[q.id] = obj;
+      el.querySelectorAll('.demographic-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+          obj[btn.dataset.field] = btn.dataset.value;
+          render();
+        });
+      });
     }
   }
 
@@ -323,7 +377,7 @@
     const idxBefore = state.currentIndex;
     setTimeout(() => {
       if (state.currentIndex === idxBefore && validate(q)) {
-        const isLast = q.id === 'q10';
+        const isLast = q.id === 'q11';
         if (isLast) submit(); else next();
       }
     }, 320);
@@ -382,6 +436,11 @@
       return obj.animalSelf && obj.animalSelf.trim().length > 0
           && obj.animalAi   && obj.animalAi.trim().length > 0;
     }
+    if (q.type === 'demographics') {
+      // Celá obrazovka je volitelná — průchod vždy povolen, ať uživatel
+      // vyplnil cokoli (i nic). Skip button má vlastní cestu.
+      return true;
+    }
     return false;
   }
 
@@ -392,7 +451,7 @@
     }
     clearError();
 
-    const isLast = q.id === 'q10';
+    const isLast = q.id === 'q11';
     if (isLast) {
       submit();
     } else {
@@ -558,11 +617,11 @@
   }
 
   function miniMapSvg(x, y, name) {
-    const SIZE = 360, MARGIN = 36, PLOT = SIZE - 2 * MARGIN;
+    const SIZE = 440, MARGIN = 40, PLOT = SIZE - 2 * MARGIN;
     const cx = MARGIN + (x / 100) * PLOT;
     const cy = MARGIN + (1 - y / 100) * PLOT;
     const mid = MARGIN + PLOT / 2;
-    const labelY = cy > SIZE - 60 ? cy - 16 : cy + 26;
+    const labelY = cy > SIZE - 70 ? cy - 18 : cy + 28;
     return `
       <svg viewBox="0 0 ${SIZE} ${SIZE}" preserveAspectRatio="xMidYMid meet">
         <rect x="${MARGIN}" y="${MARGIN}" width="${PLOT/2}" height="${PLOT/2}" fill="#e0e7ff" opacity="0.45"/>
@@ -571,14 +630,12 @@
         <rect x="${mid}" y="${mid}" width="${PLOT/2}" height="${PLOT/2}" fill="#fef3c7" opacity="0.45"/>
         <line x1="${mid}" y1="${MARGIN}" x2="${mid}" y2="${SIZE - MARGIN}" stroke="#a3a3a3" stroke-width="1" stroke-dasharray="3 3"/>
         <line x1="${MARGIN}" y1="${mid}" x2="${SIZE - MARGIN}" y2="${mid}" stroke="#a3a3a3" stroke-width="1" stroke-dasharray="3 3"/>
-        <text x="${MARGIN + 4}" y="${MARGIN + 14}" font-size="10" fill="#525252">začátečník-nadšenec</text>
-        <text x="${SIZE - MARGIN - 4}" y="${MARGIN + 14}" font-size="10" fill="#525252" text-anchor="end">optim. power user</text>
-        <text x="${MARGIN + 4}" y="${SIZE - MARGIN - 6}" font-size="10" fill="#525252">začátečník-skeptik</text>
-        <text x="${SIZE - MARGIN - 4}" y="${SIZE - MARGIN - 6}" font-size="10" fill="#525252" text-anchor="end">real. power user</text>
-        <text x="${mid + 6}" y="${MARGIN + 14}" font-size="10" fill="#737373">↑ optimismus</text>
-        <text x="${MARGIN + 4}" y="${mid - 6}" font-size="10" fill="#737373">← zkušenost</text>
-        <circle cx="${cx}" cy="${cy}" r="9" fill="#0d9488" stroke="white" stroke-width="2"/>
-        <text x="${cx}" y="${labelY}" font-size="13" font-weight="600" fill="#171717" text-anchor="middle">${escapeHtml(name || 'ty')}</text>
+        <text x="${MARGIN + 6}" y="${MARGIN + 16}" font-size="11" fill="#525252">začátečník-nadšenec</text>
+        <text x="${SIZE - MARGIN - 6}" y="${MARGIN + 16}" font-size="11" fill="#525252" text-anchor="end">optim. power user</text>
+        <text x="${MARGIN + 6}" y="${SIZE - MARGIN - 8}" font-size="11" fill="#525252">začátečník-skeptik</text>
+        <text x="${SIZE - MARGIN - 6}" y="${SIZE - MARGIN - 8}" font-size="11" fill="#525252" text-anchor="end">real. power user</text>
+        <circle cx="${cx}" cy="${cy}" r="10" fill="#0d9488" stroke="white" stroke-width="2"/>
+        <text x="${cx}" y="${labelY}" font-size="14" font-weight="600" fill="#171717" text-anchor="middle">${escapeHtml(name || 'ty')}</text>
       </svg>
     `;
   }
