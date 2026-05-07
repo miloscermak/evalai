@@ -87,6 +87,7 @@ Prázdné složky se zatím nezakládají, vzniknou při prvním souboru v nich.
 - **Anonymita = jen křestní jméno.** Žádný e-mail, IP, full name, telefon.
 - **Mobile-first.** Dotazník bude na 95 % vyplňován z telefonu po naskenování QR. Desktop verze je sekundární.
 - **3 minuty max.** Když to bude trvat déle, lidi to nedokončí. Otázky se nesmí množit.
+- **Online dataset (`workshop_id = "online"`) ≠ workshop dataset.** Web vyplňuje self-selected publikum (Milošovi čtenáři, AI-zvědaví, tech-savvy) — slouží k validaci scoringu, ne ke kalibraci průměrů firemního publika. Při kalibraci vah filtrovat podle workshop_id, ne mixovat.
 
 ---
 

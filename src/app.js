@@ -20,7 +20,8 @@
   // ──────── state ────────
 
   const state = {
-    workshop: getWorkshopFromUrl(),
+    workshop: getWorkshopFromUrl() || 'online',
+    workshopFromUrl: !!getWorkshopFromUrl(),
     name: '',
     answers: {},                    // keyed by qN
     currentIndex: 0,                // 0=welcome, 1..N=qN, N+1=thanks
@@ -88,7 +89,7 @@
 
     el.innerHTML = `
       <h1>Kde jsi na mapě AI?</h1>
-      <p>Krátký dotazník (10 otázek, ~3 minuty). Cílem je tě umístit na mapu, kterou si sám/sama uvidíš na konci workshopu.</p>
+      <p>Inspiruj.se od dubna 2023 pořádá workshopy pro zájemce o generativní AI. Za ten čas jsme vyvinuli metodiku, jak na mapu umístit účastníky workshopů — i obecně uživatele AI nástrojů. Zajímá tě, jakým typem uživatele jsi? Dej nám tři minuty. Deset otázek, a víš to.</p>
       <p>Anonymní — stačí křestní jméno, e-mail nepotřebujeme.</p>
 
       <div class="field" style="margin-top: 24px;">
@@ -98,13 +99,14 @@
                placeholder="např. Pavla">
       </div>
 
-      ${state.workshop
+      ${state.workshopFromUrl
         ? `<div class="welcome-meta"><span>Workshop: <strong>${escapeHtml(state.workshop)}</strong></span></div>`
         : `<div class="field">
-             <label class="field-label" for="workshop-input">Kód workshopu (volitelné)</label>
+             <label class="field-label" for="workshop-input">Kód workshopu</label>
              <input type="text" id="workshop-input" maxlength="40"
                     value="${escapeAttr(state.workshop)}"
-                    placeholder="např. cez-2026-04-27">
+                    placeholder="online">
+             <small class="field-help">Vyplňuješ na webu? Nech <code>online</code>. Jsi na workshopu? Přepiš na kód, který ti dal lektor.</small>
            </div>`}
 
       <div class="error-msg" id="error-msg"></div>
@@ -122,6 +124,13 @@
     nameInput.addEventListener('input', e => { state.name = e.target.value.trim(); });
     if (workshopInput) {
       workshopInput.addEventListener('input', e => { state.workshop = e.target.value.trim(); });
+      workshopInput.addEventListener('blur', e => {
+        // Když uživatel pole vymaže, vrátíme default "online" — žádné prázdné kódy.
+        if (!e.target.value.trim()) {
+          state.workshop = 'online';
+          e.target.value = 'online';
+        }
+      });
     }
 
     nameInput.addEventListener('keydown', e => {
