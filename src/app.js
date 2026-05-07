@@ -482,7 +482,7 @@
     }
 
     // 2) Result screen — máme kompletní data (score + archetype).
-    if (state.result && state.result.archetype && typeof state.result.score_x === 'number') {
+    if (state.result && typeof state.result.score_x === 'number' && typeof state.result.score_y === 'number') {
       return renderResult(state.result);
     }
 
@@ -516,9 +516,16 @@
     const el = document.createElement('div');
     el.className = 'screen result';
     const dashUrl = 'dashboard.html' + (state.workshop ? '?w=' + encodeURIComponent(state.workshop) : '');
-    const archLabel = ARCHETYPE_LABELS[r.archetype] || r.archetype || '';
     const x = Number(r.score_x) || 0;
     const y = Number(r.score_y) || 0;
+    // Archetype pro nadpis odvozujeme z finálního kvadrantu (X/Y), ne z LLM
+    // animal scoringu — ten dělá výrok jen z Q10 a nemusí sedět s reálnou pozicí.
+    const quadrantArchetype =
+      x >= 50 && y >= 50 ? 'optimistic_power_user' :
+      x >= 50 && y <  50 ? 'realistic_power_user'  :
+      x <  50 && y >= 50 ? 'beginner_enthusiast'   :
+                           'beginner_skeptic';
+    const archLabel = ARCHETYPE_LABELS[quadrantArchetype];
 
     el.innerHTML = `
       <div class="thanks-icon">✓</div>
