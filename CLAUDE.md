@@ -1,37 +1,37 @@
 # EvalAI – AI Attitude Mapper
 
-Webový dotazník (10 otázek) pro workshopy a přednášky Inspiruj.se. Mapuje účastníky na 2D plochu: **zkušenost s AI × postoj k AI**. Animal metaphor (sebe + AI + důvod) slouží jako kvalitativní validátor a outlier detector.
+Webový dotazník (10 otázek + nepovinná demografie) pro workshopy, přednášky a online sběr Inspiruj.se. Mapuje účastníky na 2D plochu: **zkušenost s AI × postoj k AI**. Animal metafora (sebe + AI + důvod) slouží jako kvalitativní barva, **NE** jako klasifikační vstup — viz „Metodologické principy" níž.
 
-Use case: na začátku workshopu Milos zobrazí QR kód, účastníci vyplní telefonem (~3 min), Milos pak živě promítne scatter plot a komentuje skupinu. Sekundárně: použitelné pro přednášky a firemní průzkumy.
+Use case: na začátku workshopu Milos zobrazí QR kód, účastníci vyplní telefonem (~3 min), Milos pak živě promítne scatter plot a komentuje skupinu. Sekundárně: online sběr přes `kdojsem.inspiruj.se` pro budoucí studii a kalibraci vah.
 
 ---
 
 ## Aktuální stav
 
-Fáze: **v0.2 — workshop-ready, čeká se na ostrý test.** (Detailní stav po session 2026-04-28 je v [`HANDOFF.md`](HANDOFF.md).)
+Fáze: **v0.4 — online sběr běží.** Workshop-ready, čeká se na první ostrý workshop a na desítky až stovky online datapointů pro kalibraci.
 
-- [x] Analýza 5 přepisů (~60 účastníků z workshopů ČEZ, Eon, ČSOB, PF Komplet)
-- [x] Design dotazníku, scoring formule, codebook zvířat (viz `docs/design.md`, Q7 už nesedí)
-- [x] Scaffold projektu + git init
-- [x] Frontend dotazníku (`src/index.html`) + auto-advance + result screen po submitu
-- [x] Apps Script backend (zápis do Google Sheets) + Claude tools API
-- [x] LLM scoring pro animal otázky (Claude API, `claude-sonnet-4-6`) + interpretace pro účastníka
-- [x] Live dashboard (SVG scatter plot, čte z Sheets, auto-refresh 10 s)
+- [x] Frontend dotazníku (10 otázek + Q11 nepovinná demografie + auto-advance + result screen)
+- [x] Apps Script backend (zápis do Google Sheets + Claude tools API)
+- [x] Hard scoring (Q1–Q9) deterministický, animal vrstva nezasahuje do X/Y
+- [x] LLM píše dvě textové pasáže: tvrdá interpretace (Q1–Q9 + akční doporučení) + měkká úvaha o zvířatech
+- [x] Live dashboard (SVG scatter plot, kvadranty, auto-refresh 10 s, JSON/MD export)
 - [x] Admin `/start` page s QR kódem a live counterem
-- [x] Export dat z dashboardu do JSON / MD
-- [x] Deploy na Netlify (`famous-torte-f2e74a.netlify.app`) + vlastní doména `kdojsem.inspiruj.se`
+- [x] Online mód: `workshop_id = "online"` default pro web visitors, oddělený od workshop datasetů
+- [x] Volitelná demografie: věk, vzdělání, obor, pohlaví (+ „Nechci uvést" + Skip celé obrazovky)
+- [x] Deploy: Netlify auto-deploy z `main` → `kdojsem.inspiruj.se` (default URL `famous-torte-f2e74a.netlify.app` zůstává)
 - [ ] První ostrý test na workshopu
-- [ ] Re-kalibrace vah z reálných dat
+- [ ] Kalibrace vah z reálných dat (prahy kvadrantů, váhy Q5/Q6/Q7, X_max)
+- [ ] Aktualizace `docs/design.md` — z poslední session (Q3/Q5/Q6/Q7/Q9 nová znění + odstraněné LLM modifikátory) je out-of-sync; ground truth je `src/questions.js` + `apps-script/webhook.gs`
 
 ---
 
 ## Stack
 
 - **Frontend:** vanilla HTML + JS (single-page form), bez frameworku, bez build stepu. Mobile-first, čeština.
-- **Hosting:** Netlify, build z GitHub repa, auto-deploy z `main`. Produkční URL: `https://kdojsem.inspiruj.se` (Netlify default `famous-torte-f2e74a.netlify.app` zůstává funkční).
-- **Backend:** Google Apps Script jako webhook → zápis do Google Sheets na Milošově osobním Google účtu.
-- **LLM scoring:** Claude API. Volá se z Apps Script po submitu, hodnotí jen Q10 (zvíře + důvod), vrací JSON s modifikátory + archetype.
-- **Dashboard:** druhá HTML stránka, čte z Sheets přes published JSON. Auto-refresh 10 s. Knihovna na scatter plot bude zvolena při stavbě (pravděpodobně Chart.js nebo D3, podle toho co bude lehčí).
+- **Hosting:** Netlify, build z GitHub repa, auto-deploy z `main`. Produkční URL: `https://kdojsem.inspiruj.se`.
+- **Backend:** Google Apps Script jako webhook → zápis do Google Sheets na Milošově osobním Google účtu. Schema sheetu fixní (viz `SHEET_HEADERS` v `webhook.gs`); přidání sloupců do existujícího sheetu vyžaduje **manuální** zásah do header rowy.
+- **LLM:** Claude API (`claude-sonnet-4-6`). Volá se z Apps Script po submitu. Vstup: **všech 10 odpovědí + finální X/Y + kvadrant**. Výstup přes tools API: `interpretation` (3–4 věty tvrdé analýzy + akční doporučení) + `animal_note` (3–4 věty poetické úvahy nad oběma zvířaty). LLM nedělá klasifikaci, nehýbe pozicí.
+- **Dashboard:** druhá HTML stránka, čte z Sheets přes Apps Script doGet. Filter `?w=<workshop_id>`. Auto-refresh 10 s.
 
 ---
 
@@ -40,54 +40,116 @@ Fáze: **v0.2 — workshop-ready, čeká se na ostrý test.** (Detailní stav po
 ```
 evalai/
 ├── CLAUDE.md          # tento soubor – kontext pro Claude
-├── README.md          # technický README pro GitHub (přijde později)
-├── .gitignore
+├── HANDOFF.md         # detailní deniční záznam mezi sessions
+├── README.md
+├── netlify.toml
 ├── docs/
-│   └── design.md      # design dokument: dotazník, scoring, codebook
+│   └── design.md      # design dokument (částečně out-of-sync, viz „Aktuální stav")
 ├── src/               # frontend
 │   ├── index.html     # dotazník
-│   ├── dashboard.html # live scatter plot
+│   ├── app.js         # state machine, render, submit
+│   ├── questions.js   # definice 10 otázek + q11 demografie
 │   ├── style.css
-│   └── app.js
-├── apps-script/       # Google Apps Script (zkopíruje se do editoru ručně)
-│   └── webhook.gs
-└── data/
-    └── transcripts/   # kalibrační přepisy (referenční, neveřejné)
+│   ├── dashboard.html # live scatter plot
+│   ├── dashboard.js
+│   ├── dashboard.css
+│   ├── start.html     # admin /start page
+│   ├── start.js
+│   ├── start.css
+│   └── config.js      # webhook URL + dashboard JSON URL
+├── apps-script/
+│   └── webhook.gs     # zdrojový kód, ručně se kopíruje do Apps Script editoru
+└── scoring-test.mjs   # lokální sanity check scoring formulí
 ```
-
-Prázdné složky se zatím nezakládají, vzniknou při prvním souboru v nich.
 
 ---
 
 ## Workflow
 
 ### Development
-- Frontend: editovat `src/*.html`, otevírat lokálně v prohlížeči, žádný build
-- Apps Script: lokálně v `apps-script/webhook.gs` jako referenční zdroj, deploy ručně přes Apps Script editor (web app)
-- Před commitem: smoke test (vyplnit dotazník end-to-end, ověřit zápis do Sheetů a vykreslení v dashboardu)
+- Frontend: editovat `src/*`, otevírat lokálně v prohlížeči, žádný build.
+- Apps Script: lokálně v `apps-script/webhook.gs` jako referenční zdroj, deploy ručně přes Apps Script editor.
+- Před commitem: smoke test (vyplnit dotazník end-to-end, ověřit zápis do Sheetů).
 
 ### Deploy
-- Push do GitHub `main` → Netlify automaticky deployne frontend
-- Apps Script: nasazení samostatně přes editor.apps.google.com (Deploy → New deployment → Web app, anyone with link)
+- **Frontend:** push do `main` → Netlify auto-deploy.
+- **Apps Script:** **manuální redeploy** vždy, když se mění `webhook.gs`. Postup:
+  1. script.google.com → projekt EvalAI → soubor `webhook.gs`
+  2. Cmd-A → vložit obsah z `apps-script/webhook.gs` → Cmd-S
+  3. Deploy → Manage deployments → tužka u existujícího deployment → Version: New version → Deploy
+  4. URL deploymentu **zůstává stejná** (žádné změny v `src/config.js`)
+- **Sheet schema:** přidání nového sloupce do existujícího sheetu Apps Script **neudělá sám** — je nutné v Google Sheets ručně doplnit hlavičku do prvního řádku na správnou pozici (insert column + nový label).
 
-### Workshop flow (cílový)
-1. Milos vygeneruje workshop_id (např. `cez-2026-04-27`)
-2. Zobrazí QR → `kdojsem.inspiruj.se/?w=cez-2026-04-27`
-3. Účastníci vyplní telefonem (~3 min)
-4. Milos přepne na `kdojsem.inspiruj.se/dashboard?w=cez-2026-04-27`
-5. Body naskakují v reálném čase, hover ukáže jméno + zvíře
+### Workshop flow
+1. Milos otevře `kdojsem.inspiruj.se/start.html` → zadá workshop_id (např. `cez-2026-04-27`)
+2. Zobrazí QR → účastníci vyplní telefonem (~3 min)
+3. Milos přepne na `kdojsem.inspiruj.se/dashboard.html?w=cez-2026-04-27`
+4. Body naskakují v reálném čase, hover ukáže jméno + zvíře
+5. Po skončení: export JSON / MD z dashboardu
+
+### Online flow
+- Visitor přijde na `kdojsem.inspiruj.se` (bez `?w=` parametru) → workshop_id se defaultuje na `online`.
+- Dashboard pro online dataset: `kdojsem.inspiruj.se/dashboard.html?w=online`.
 
 ---
 
-## Klíčové designové principy
+## Metodologické principy
 
-- **„Proč" váží víc než druh zvířete.** Animal coding se aplikuje až po Q1–Q9 jako overlay (max ±5 na X, ±10 na Y). Outliers se značí vlaječkou v dashboardu, ne přepisují skóre.
-- **Self-rating se ignoruje.** Skóre experience je čistě behaviorální (počet nástrojů, placené licence, pokročilé techniky).
-- **Mid-X skeptici ≠ Low-X bojící se.** Archetyp „realistický power user" (Pavel Innovation, Alena Eon) musí být v dashboardu rozpoznatelný od archetypu „začátečník-skeptik" (Saša, Andrea).
-- **Anonymita = jen křestní jméno.** Žádný e-mail, IP, full name, telefon.
-- **Mobile-first.** Dotazník bude na 95 % vyplňován z telefonu po naskenování QR. Desktop verze je sekundární.
-- **3 minuty max.** Když to bude trvat déle, lidi to nedokončí. Otázky se nesmí množit.
-- **Online dataset (`workshop_id = "online"`) ≠ workshop dataset.** Web vyplňuje self-selected publikum (Milošovi čtenáři, AI-zvědaví, tech-savvy) — slouží k validaci scoringu, ne ke kalibraci průměrů firemního publika. Při kalibraci vah filtrovat podle workshop_id, ne mixovat.
+**Tvrdá data ≠ měkká vrstva.** Toto je centrální princip projektu, dohodnutý 2026-05-07.
+
+| | Vstup | Zpracování | Výstup |
+|---|---|---|---|
+| **Tvrdá data** | Q1–Q9 | Deterministický scoring (vážené součty + clamp) | X (0–100), Y (0–100), kvadrant |
+| **Měkká data** | Q10 zvířata | Claude — pouze čte, neklasifikuje | Poetická úvaha (animal_note) |
+| **Slovní hodnocení** | Všech 10 + finální X/Y + kvadrant | Claude píše | interpretation s doporučením |
+
+Zvířata se **podílí jen na textu**, ne na pozici. Žádné LLM modifikátory X/Y. Kvadrant na výsledné mapě se odvozuje **deterministicky** z X/Y, ne z LLM výstupu. Důvod: LLM klasifikace ze samotných dvou zvířat je „příliš na vodě" a generovala disonance (vysoké skóre + skeptická zvířata → tečka v power-user kvadrantu, ale label řekl beginner_skeptic).
+
+### Další principy
+
+- **Self-rating se ignoruje.** Skóre experience (X) je čistě behaviorální (frekvence, počet nástrojů, placené licence, pokročilé techniky).
+- **Anonymita.** Žádné PII kromě křestního jména. Demografie je kategorická a nepovinná, nedeanonymizuje.
+- **Mobile-first.** ~95 % vyplňování z telefonu po QR. Desktop sekundární.
+- **3 minuty max.** Když to trvá déle, dropoff. Demografie přidává ~30–45 s, ale je skipovatelná.
+- **Online dataset (`workshop_id = "online"`) ≠ workshop dataset.** Web vyplňuje self-selected publikum (Milošovi čtenáři, tech-savvy) — slouží k validaci scoringu, ne ke kalibraci průměrů firemního publika. Při kalibraci vah filtrovat podle workshop_id, ne mixovat.
+- **Mid-X skeptici ≠ Low-X bojící se.** Archetyp „realistický power user" musí být v dashboardu rozpoznatelný od archetypu „začátečník-skeptik" (kvadranty to dělají automaticky díky 4-stavové klasifikaci).
+
+---
+
+## Q11 — demografie (volitelná)
+
+Přidaná 2026-05-07 jako separátní obrazovka mezi Q10 a submitem. Nepočítá se do scoringu, slouží pro budoucí studii a sub-grupovou analýzu.
+
+| Pole | Hodnoty |
+|---|---|
+| `age` | under_25 / 26_35 / 36_45 / 46_55 / 56_65 / over_65 / na |
+| `education` | zs / ss_no_matur / ss_matur / vs / na (jedna kategorie VŠ — v ČR málo bakalářů, nemá smysl rozdělovat) |
+| `field` | it / marketing / finance / science / health / creative / industry / public / business / student / retired / other / na |
+| `gender` | female / male / other / na |
+
+Skip button na obrazovce přeskočí vyplnění úplně (q11 nezůstane v `state.answers`). Každé pole má i položku „Nechci uvést" (`na`) — odlišení od neotevřené obrazovky je v Sheetu užitečné.
+
+---
+
+## Sheet schema
+
+Pořadí sloupců (pevné, viz `SHEET_HEADERS` v `webhook.gs`):
+
+```
+A submission_id          L animal_note
+B timestamp              M score_x_final
+C workshop_id            N score_y_final
+D name                   O outlier_flag      (vždy false v současném schema)
+E duration_sec           P interpretation
+F answers_json           Q age
+G score_x_raw            R education
+H score_y_raw            S field
+I archetype              T gender
+J animal_x_mod   (= 0)   U user_agent
+K animal_y_mod   (= 0)   V version
+```
+
+Pole `archetype` je nyní deterministický kvadrant (`optimistic_power_user` / `realistic_power_user` / `beginner_enthusiast` / `beginner_skeptic`), ne LLM výstup. `animal_x_mod` a `animal_y_mod` zůstávají v schemu jen kvůli kompatibilitě se starými řádky a vždy se zapisuje 0.
 
 ---
 
@@ -95,44 +157,22 @@ Prázdné složky se zatím nezakládají, vzniknou při prvním souboru v nich.
 
 - **UI a obsah:** čeština
 - **Kód, komentáře, commit messages:** angličtina
-- **Commit messages:** stručné, imperativ, klidně i 2-3 slova (`add scoring formula`, `fix dashboard refresh`, `init: CLAUDE.md`)
-- **CSS:** žádný framework. Vlastní minimalistický styl, dvě hlavní barvy + neutrální paleta.
-- **JS:** ES modules. Žádný build step zatím. Až bude potřeba bundling, přidá se Vite.
-- **Soubory:** jeden soubor = jedna zodpovědnost. Žádné mega-komponenty.
+- **Commit messages:** stručné, imperativ, klidně i 2-3 slova (`add scoring formula`, `fix dashboard refresh`)
+- **CSS:** žádný framework, vlastní minimalistický styl
+- **JS:** ES modules, žádný build step
+- **Soubory:** jeden soubor = jedna zodpovědnost
 
 ---
 
 ## Bezpečnost a soukromí
 
 - Žádné PII kromě křestního jména
+- Demografie je kategorická a nepovinná, nedeanonymizuje
 - Sheety jsou soukromé (Milošův Google), publikovaný je jen agregovaný JSON pro dashboard
-- Dashboard URL se nesmí veřejně linkovat (workshop_id je obfuskace, ne autentizace – pokud bude potřeba víc, doplníme jednoduché heslo v URL)
-- Claude API klíč je v Apps Script Properties, **nikdy v frontendu**
-- LLM scoring posílá Claude API jen `{ animal_self, reason_self, animal_ai, reason_ai }`, nic dalšího
+- Dashboard URL se nesmí veřejně linkovat (workshop_id je obfuskace, ne autentizace)
+- Claude API klíč je v Apps Script Script Properties, **nikdy v frontendu**
+- LLM dostává všech 10 odpovědí + skóre. Žádné PII (jméno, IP, user agent) se do LLM neposílá.
 - Nikdy nemazat ani nepřepisovat existující data v Sheetech bez explicitního souhlasu Miloše
-
----
-
-## Otevřené otázky (k vyřešení před / při implementaci)
-
-2. **Branding** – mám použít Inspiruj.se barvy/font/logo? Pošle Milos brand guideline?
-3. **Claude API klíč** – Milos má existující Anthropic účet, nebo vytvoří nový? Klíč přidáme do Apps Script Properties.
-4. **Workshop_id** – ručně do URL při sdílení QR, nebo dropdown v admin view? První verze: ručně do URL.
-5. **Archetypy v dashboardu** – label u každého bodu, nebo jen v exportu / hover tooltipu?
-6. **GitHub repo** – public, nebo private? Doporučuji private (obsahuje codebook + kalibrační příklady).
-
----
-
-## Referenční zdroje
-
-- **Design dokument:** [`docs/design.md`](docs/design.md) – kompletní design včetně 10 otázek, scoring formule, codebook zvířat, validační příklady na konkrétních lidech z přepisů.
-- **Kalibrační přepisy:** uloží se do `data/transcripts/` (neveřejné, jen pro re-kalibraci vah po prvních ostrých datech).
-- **Globální Miloš preferences** (z user-level CLAUDE.md):
-  - přímá komunikace, čeština, struktura → realizace
-  - oddělovat fakta / interpretaci / doporučení
-  - **nikdy nemazat ani nepřepisovat zdrojové materiály bez explicitního souhlasu**
-  - upozornit předem na destruktivní nebo nevratné akce
-  - kladení upřesňujících otázek před složitými/rizikovými úkoly
 
 ---
 
@@ -140,9 +180,10 @@ Prázdné složky se zatím nezakládají, vzniknou při prvním souboru v nich.
 
 Když do tohoto projektu vstoupíš znovu:
 
-1. **Přečti tento soubor.** Ne jen prvních pár řádků – všechny sekce mají kontext.
-2. **Přečti `docs/design.md`** – tam je veškerá metodologie a kódovací rubric.
-3. **Zkontroluj `git log`** – co se od minula stalo.
-4. **Zkontroluj sekci „Aktuální stav" výš** – co je hotové a co následuje.
-5. **Před netriviální akcí se ptej.** Hlavně před deploy, mazáním, nebo změnou scoring vah.
-6. **Po hotovém milníku aktualizuj stav** v tomto souboru a commitni.
+1. **Přečti tento soubor.** Všechny sekce mají kontext, hlavně „Metodologické principy" a „Aktuální stav".
+2. **Mrkni na `HANDOFF.md`** — deniční záznam mezi sessions.
+3. **Zkontroluj `git log`** — co se od minula stalo.
+4. **Pamatuj si rozdělení tvrdá vs. měkká data.** Nikdy nenavrhuj, aby LLM hýbal X/Y nebo dělal klasifikaci kvadrantů.
+5. **Apps Script změny vyžadují manuální redeploy** — vždy to napiš Milošovi explicitně, on to udělá.
+6. **Před netriviální akcí se ptej.** Hlavně před deploy, mazáním, nebo změnou scoring vah.
+7. **Po hotovém milníku aktualizuj stav** v tomto souboru a commitni.
