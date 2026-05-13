@@ -138,13 +138,23 @@ function processSubmission(payload) {
 function deriveQuadrant(x, y) {
   if (x >= 50 && y >= 50) return 'optimistic_power_user';
   if (x >= 50 && y <  50) return 'realistic_power_user';
-  if (x <  50 && y >= 50) return 'beginner_enthusiast';
-  return 'beginner_skeptic';
+  if (x <  50 && y >= 50) return 'casual_enthusiast';
+  return 'casual_skeptic';
 }
 
 // ════════════════════════════════════════════════════════════════════════
 // SCORING — X (zkušenost, 0-100)
 // ════════════════════════════════════════════════════════════════════════
+//
+// Verze 2026-05-13: dvousložkový X.
+//   Core  (Q1 + Q2 + Q4, max 130) = intenzita reálného používání — váha 0.7
+//   Bonus (Q3 + Q5, max 150)      = rozsah a pokročilost — váha 0.3
+//
+// Důvod: stará formule (vážený součet / 280) dávala 53 % váhy na "šíři a
+// pokročilost" (Q3+Q5). Daily user s 1 nástrojem bez agentů končil na X≈36,
+// i když AI fakticky používá denně. Po rebalance je X=50 typický denní
+// uživatel jednoho nástroje, X≥75 jen skutečný power user.
+// Validováno dry-runem na 131 reálných odpovědích (CAK/online/bioptic).
 
 function scoreX(a) {
   const Q1 = { never: 0, lt6m: 10, '6m_2y': 25, gt2y: 40 };
@@ -179,8 +189,9 @@ function scoreX(a) {
   const q4 = Q4[a.q4] || 0;
   const q5 = capSum(asArray(a.q5), Q5_ACTS, 90);
 
-  const sum = q1 + q2 + q3 + q4 + q5;        // max 280
-  return Math.round((sum / 280) * 100);
+  const corePct  = (q1 + q2 + q4) / 130 * 100;   // max 130
+  const bonusPct = (q3 + q5)      / 150 * 100;   // max 150
+  return Math.round(0.7 * corePct + 0.3 * bonusPct);
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -315,10 +326,13 @@ function buildFeedbackPrompt(a, xFinal, yFinal, quadrant) {
   const reasonAi   = String(q10.reasonAi   || '').slice(0, 400);
 
   const QUAD_LABEL = {
-    optimistic_power_user: 'Optimistický power user (vysoká zkušenost, optimismus)',
-    realistic_power_user:  'Realistický power user (vysoká zkušenost, skepticky střízlivý postoj)',
-    beginner_enthusiast:   'Začátečník-nadšenec (nízká zkušenost, optimismus)',
-    beginner_skeptic:      'Začátečník-skeptik (nízká zkušenost, skeptický postoj)',
+    optimistic_power_user: 'Optimistický power user (pokročilý uživatel, optimismus)',
+    realistic_power_user:  'Realistický power user (pokročilý uživatel, skepticky střízlivý postoj)',
+    casual_enthusiast:     'Běžný uživatel-nadšenec (základní použití, optimismus)',
+    casual_skeptic:        'Běžný uživatel-skeptik (základní použití, skeptický postoj)',
+    // legacy aliasy pro stará data v Sheetu (před backfillem)
+    beginner_enthusiast:   'Začátečník-nadšenec (legacy)',
+    beginner_skeptic:      'Začátečník-skeptik (legacy)',
   };
 
   return [
@@ -485,4 +499,61 @@ function testSubmission() {
   const result = processSubmission(fakePayload);
   console.log('Result:', result);
   return result;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// BACKFILL — jednorázové přepočítání X a archetype na všech existujících
+// řádcích podle aktuální verze scoreX a deriveQuadrant.
+//
+// Spustit ručně z Apps Script editoru po deployi nové formule.
+// 1. Apps Script editor → vybrat funkci "backfillScores" → Run
+// 2. Zkontrolovat log (Cmd+Enter), vypíše počet přepsaných řádků
+// 3. Pokud něco nesedí, je k dispozici git tag v0.4-pre-x-rebalance pro rollback kódu
+//
+// Důležité: backfill čte answers_json a přepisuje score_x_raw, score_x_final
+// a archetype. Y (score_y_raw, score_y_final), LLM texty a metadata zůstávají
+// beze změny.
+// ════════════════════════════════════════════════════════════════════════
+
+function backfillScores() {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+  if (!sheet) throw new Error('Sheet not found: ' + SHEET_NAME);
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    console.log('No data rows.');
+    return { updated: 0, skipped: 0 };
+  }
+
+  const range = sheet.getRange(2, 1, lastRow - 1, SHEET_HEADERS.length);
+  const values = range.getValues();
+  const idx = name => SHEET_HEADERS.indexOf(name);
+
+  let updated = 0;
+  let skipped = 0;
+
+  values.forEach((row, i) => {
+    const json = row[idx('answers_json')];
+    if (!json) { skipped++; return; }
+
+    let a;
+    try { a = JSON.parse(json); }
+    catch (e) { skipped++; return; }
+
+    const xRaw   = scoreX(a);
+    const xFinal = clamp(xRaw, 0, 100);
+    const yFinal = row[idx('score_y_final')];   // Y se nemění
+    const quadrant = (typeof yFinal === 'number')
+      ? deriveQuadrant(xFinal, yFinal)
+      : row[idx('archetype')];                   // fallback, kdyby Y chybělo
+
+    row[idx('score_x_raw')]   = xRaw;
+    row[idx('score_x_final')] = xFinal;
+    row[idx('archetype')]     = quadrant;
+    updated++;
+  });
+
+  range.setValues(values);
+  console.log('Backfill complete. updated=' + updated + ', skipped=' + skipped);
+  return { updated, skipped };
 }

@@ -2,8 +2,8 @@
 // Spustit: node scoring-test.mjs (z root projektu).
 // Tento soubor není v gitu — slouží jen pro ad-hoc kontrolu.
 //
-// Verze 2026-04-29: po reworkování Q3/Q5/Q6/Q7/Q9. Q9 je teď obrácená
-// (regulační očekávání), Q5 má novou hierarchii hodnot, X_max je 280.
+// Verze 2026-05-13: dvousložkový X (Core 0.7 / Bonus 0.3). Viz scoreX dole
+// a komentář ve webhook.gs. Y se nemění.
 
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 function asArray(v) { return Array.isArray(v) ? v : (v ? [v] : []); }
@@ -32,7 +32,9 @@ function scoreX(a) {
   const q3 = capSum(asArray(a.q3), Q3_TOOLS, 60);
   const q4 = Q4[a.q4] || 0;
   const q5 = capSum(asArray(a.q5), Q5_ACTS, 90);
-  return Math.round(((q1 + q2 + q3 + q4 + q5) / 280) * 100);
+  const corePct  = (q1 + q2 + q4) / 130 * 100;
+  const bonusPct = (q3 + q5)      / 150 * 100;
+  return Math.round(0.7 * corePct + 0.3 * bonusPct);
 }
 
 function scoreY(a) {

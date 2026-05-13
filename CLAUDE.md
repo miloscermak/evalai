@@ -149,7 +149,11 @@ J animal_x_mod   (= 0)   U user_agent
 K animal_y_mod   (= 0)   V version
 ```
 
-Pole `archetype` je nyní deterministický kvadrant (`optimistic_power_user` / `realistic_power_user` / `beginner_enthusiast` / `beginner_skeptic`), ne LLM výstup. `animal_x_mod` a `animal_y_mod` zůstávají v schemu jen kvůli kompatibilitě se starými řádky a vždy se zapisuje 0.
+Pole `archetype` je nyní deterministický kvadrant (`optimistic_power_user` / `realistic_power_user` / `casual_enthusiast` / `casual_skeptic`), ne LLM výstup. `animal_x_mod` a `animal_y_mod` zůstávají v schemu jen kvůli kompatibilitě se starými řádky a vždy se zapisuje 0.
+
+**Pozn. k pojmenování (2026-05-13):** dříve `beginner_enthusiast` / `beginner_skeptic`. Přejmenováno na `casual_*`, protože „beginner" evokuje délku používání, ale levá polovina X-osy zachycuje šíři a pokročilost, ne čas. Stará data v Sheetu jsou přepsána funkcí `backfillScores()`.
+
+**Pozn. k X-osa formuli (2026-05-13):** dvousložkový X = 0.7 × Core% + 0.3 × Bonus%, kde Core = Q1+Q2+Q4 (intenzita reálného používání, max 130), Bonus = Q3+Q5 (rozsah a pokročilost, max 150). Dřív byl prostý vážený součet / 280, který přetlačoval Q5 (32 % váhy) a tlačil typické workshopové publikum pod X=50. Nová formule: X=50 ≈ denní uživatel jednoho nástroje. Checkpoint před změnou: git tag `v0.4-pre-x-rebalance`.
 
 ---
 

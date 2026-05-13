@@ -112,9 +112,9 @@
 }
 
 /* SVG styly */
-.q-bg-tl { fill: #e0e7ff; }   /* beginner enthusiast — blue */
+.q-bg-tl { fill: #e0e7ff; }   /* casual enthusiast — blue */
 .q-bg-tr { fill: #d1fae5; }   /* optimistic power user — green */
-.q-bg-bl { fill: #fee2e2; }   /* beginner skeptic — red */
+.q-bg-bl { fill: #fee2e2; }   /* casual skeptic — red */
 .q-bg-br { fill: #fef3c7; }   /* realistic power user — warm */
 .q-bg-tl, .q-bg-tr, .q-bg-bl, .q-bg-br { opacity: 0.35; }
 

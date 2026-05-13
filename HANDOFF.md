@@ -1,8 +1,27 @@
 # EvalAI — Předávací zpráva
 
-**Aktualizace:** 2026-05-08
-**Předává:** Claude Code (session 2026-05-07/08) → další session
-**Stav:** v0.4 — online sběr běží na `kdojsem.inspiruj.se`. Vše pushnuté do `main`, Apps Script aktuálně redeploynutý.
+**Aktualizace:** 2026-05-13
+**Předává:** Claude Code (session 2026-05-13) → další session
+**Stav:** v0.5 — X-osa formule přepracována na dvousložkový model (Core 0.7 / Bonus 0.3). Frontend committen, **Apps Script čeká na manuální redeploy** + spuštění `backfillScores()` na existujících 131 řádcích.
+
+## Změny v session 2026-05-13
+
+- **Analýza dat z CAK (n=60)** ukázala, že 53 % advokátů končilo v `beginner_skeptic` kvadrantu i přes denní používání AI. Strukturální problém: stará formule dávala 53 % váhy na šíři/pokročilost (Q3+Q5), takže denní uživatel ChatGPT bez agentů byl strukturálně pod X=50.
+- **Nová X formule:** `X = 0.7 × (Q1+Q2+Q4)/130 + 0.3 × (Q3+Q5)/150` (procenta × 100, zaokrouhleno). Individuální váhy odpovědí beze změny.
+- **Přejmenování archetypů:** `beginner_enthusiast` → `casual_enthusiast`, `beginner_skeptic` → `casual_skeptic`. Důvod: „beginner" evokoval čas, ne pokročilost. Power user kvadranty zachovány.
+- **`backfillScores()`** v `apps-script/webhook.gs` — jednorázová funkce pro přepočet všech existujících řádků v Sheetu. Spustit ručně z Apps Script editoru po deployi.
+- **Checkpoint:** git tag `v0.4-pre-x-rebalance` (commit `e544199`) pro případný rollback.
+
+### Co musí Milos udělat ručně po pull:
+
+1. Apps Script editor → vložit aktuální obsah `apps-script/webhook.gs` → Save
+2. Deploy → Manage deployments → tužka → New version → Deploy (URL zůstává)
+3. **Spustit funkci `backfillScores`** z editoru (vybrat z dropdownu „Select function" → Run). Vypíše do logu počet přepsaných řádků (čekáme cca 131).
+4. Smoke test: jedna nová submission přes `kdojsem.inspiruj.se` → ověřit, že X sedí s lokálním přepočtem.
+
+---
+
+## Předchozí stav (do 2026-05-08)
 
 ---
 

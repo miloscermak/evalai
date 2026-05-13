@@ -55,11 +55,11 @@
       { id: '1', name: 'Senta',   x: 92, y: 88, archetype: 'optimistic_power_user', animal_self: 'delfín', animal_ai: 'chobotnice', outlier: false },
       { id: '2', name: 'Tomáš',   x: 95, y: 80, archetype: 'optimistic_power_user', animal_self: 'vlk', animal_ai: 'krkavec', outlier: false },
       { id: '3', name: 'Pavel',   x: 88, y: 35, archetype: 'realistic_power_user', animal_self: 'vlk smečky', animal_ai: 'sedmihlavý drak', outlier: true },
-      { id: '4', name: 'Lukáš',   x: 25, y: 72, archetype: 'beginner_enthusiast', animal_self: 'bobr', animal_ai: 'mraveniště', outlier: false },
-      { id: '5', name: 'Saša',    x: 8,  y: 22, archetype: 'beginner_skeptic', animal_self: 'žirafa', animal_ai: 'tajemné cizí', outlier: false },
-      { id: '6', name: 'Andrea',  x: 5,  y: 18, archetype: 'beginner_skeptic', animal_self: 'jorkšír', animal_ai: 'chobotnice', outlier: true },
+      { id: '4', name: 'Lukáš',   x: 25, y: 72, archetype: 'casual_enthusiast', animal_self: 'bobr', animal_ai: 'mraveniště', outlier: false },
+      { id: '5', name: 'Saša',    x: 8,  y: 22, archetype: 'casual_skeptic', animal_self: 'žirafa', animal_ai: 'tajemné cizí', outlier: false },
+      { id: '6', name: 'Andrea',  x: 5,  y: 18, archetype: 'casual_skeptic', animal_self: 'jorkšír', animal_ai: 'chobotnice', outlier: true },
       { id: '7', name: 'Pepa',    x: 35, y: 60, archetype: 'pragmatic_user', animal_self: 'tygr (z Pú)', animal_ai: 'staletá želva', outlier: false },
-      { id: '8', name: 'Honza',   x: 28, y: 30, archetype: 'beginner_skeptic', animal_self: 'služební pes', animal_ai: 'HAL 9000', outlier: true },
+      { id: '8', name: 'Honza',   x: 28, y: 30, archetype: 'casual_skeptic', animal_self: 'služební pes', animal_ai: 'HAL 9000', outlier: true },
     ];
   }
 
@@ -215,9 +215,12 @@
   const ARCHETYPE_LABELS = {
     optimistic_power_user: 'Optimistický power user',
     realistic_power_user:  'Realistický power user',
+    casual_enthusiast:     'Běžný uživatel-nadšenec',
+    casual_skeptic:        'Běžný uživatel-skeptik',
+    // legacy aliasy pro stará data
     pragmatic_user:        'Pragmatický uživatel',
-    beginner_enthusiast:   'Začátečník-nadšenec',
-    beginner_skeptic:      'Začátečník-skeptik',
+    beginner_enthusiast:   'Běžný uživatel-nadšenec',
+    beginner_skeptic:      'Běžný uživatel-skeptik',
     manager_proxy:         'Manažer (proxy uživatel)',
     unclear:               'Smíšený typ',
   };
@@ -225,8 +228,8 @@
   function quadrantOf(p) {
     if (p.x >= 50 && p.y >= 50) return 'Optimistický power user';
     if (p.x >= 50 && p.y <  50) return 'Realistický power user';
-    if (p.x <  50 && p.y >= 50) return 'Začátečník-nadšenec';
-    return 'Začátečník-skeptik';
+    if (p.x <  50 && p.y >= 50) return 'Běžný uživatel-nadšenec';
+    return 'Běžný uživatel-skeptik';
   }
 
   function downloadFile(filename, content, mime) {

@@ -573,9 +573,12 @@
   const ARCHETYPE_LABELS = {
     optimistic_power_user: 'Optimistický power user',
     realistic_power_user:  'Realistický power user',
+    casual_enthusiast:     'Běžný uživatel-nadšenec',
+    casual_skeptic:        'Běžný uživatel-skeptik',
+    // legacy aliasy pro stará data
     pragmatic_user:        'Pragmatický uživatel',
-    beginner_enthusiast:   'Začátečník-nadšenec',
-    beginner_skeptic:      'Začátečník-skeptik',
+    beginner_enthusiast:   'Běžný uživatel-nadšenec',
+    beginner_skeptic:      'Běžný uživatel-skeptik',
     manager_proxy:         'Manažer (proxy uživatel)',
     unclear:               'Smíšený typ',
   };
@@ -591,8 +594,8 @@
     const quadrantArchetype =
       x >= 50 && y >= 50 ? 'optimistic_power_user' :
       x >= 50 && y <  50 ? 'realistic_power_user'  :
-      x <  50 && y >= 50 ? 'beginner_enthusiast'   :
-                           'beginner_skeptic';
+      x <  50 && y >= 50 ? 'casual_enthusiast'     :
+                           'casual_skeptic';
     const archLabel = ARCHETYPE_LABELS[quadrantArchetype];
 
     el.innerHTML = `
