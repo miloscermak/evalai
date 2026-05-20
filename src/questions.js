@@ -145,9 +145,9 @@ window.EVALAI_QUESTIONS = [
     subtitle: 'Tahle otázka je pro nás nejcennější. Napiš první, co tě napadne — důvod je nepovinný.',
     type: 'animal',
     fields: [
-      { key: 'animalSelf', label: 'K jakému zvířeti přirovnáš sebe?',  placeholder: 'např. delfín, vlk, kočka',           maxLength: 30 },
+      { key: 'animalSelf', label: 'K jakému zvířeti přirovnáš sebe?',  placeholder: '',                                    maxLength: 30 },
       { key: 'reasonSelf', label: 'Proč? (volitelné)',                 placeholder: 'Klidně přeskoč.',                     maxLength: 200, multiline: true, optional: true },
-      { key: 'animalAi',   label: 'A k jakému zvířeti přirovnáš AI?',  placeholder: 'např. chobotnice, drak, mraveniště',  maxLength: 30 },
+      { key: 'animalAi',   label: 'A k jakému zvířeti přirovnáš AI?',  placeholder: '',                                    maxLength: 30 },
       { key: 'reasonAi',   label: 'Proč? (volitelné)',                 placeholder: 'Klidně přeskoč.',                     maxLength: 200, multiline: true, optional: true },
     ],
   },
