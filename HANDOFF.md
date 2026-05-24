@@ -1,8 +1,35 @@
 # EvalAI — Předávací zpráva
 
-**Aktualizace:** 2026-05-13
-**Předává:** Claude Code (session 2026-05-13) → další session
-**Stav:** v0.5 — X-osa formule přepracována na dvousložkový model (Core 0.7 / Bonus 0.3). Frontend committen, **Apps Script čeká na manuální redeploy** + spuštění `backfillScores()` na existujících 131 řádcích.
+**Aktualizace:** 2026-05-24
+**Předává:** Claude Code (session 2026-05-24) → další session
+**Stav:** v0.5 — 6+ ostrých workshopů proběhlo, **205 datapointů** v Sheetu (2026-04-27 → 2026-05-22). Workshop flow ověřen. Otevřená je kalibrace vah z reálných dat a sync `docs/design.md`.
+
+## Změny v session 2026-05-24
+
+- **Aktualizace stavu v CLAUDE.md** — odškrtnut „První ostrý test na workshopu", přidán seznam proběhlých workshopů a statistika.
+- **Snapshot databáze:** `evalai260524.csv` (205 řádků) stažený z Drive jako pracovní offline kopie pro analýzu. Není v gitu (přidat do `.gitignore`?). Ground truth zůstává Google Sheet.
+- **Distribuce skóre** (n=206 vč. testů):
+  - Workshop_id: cak 59, online 45, hluboka 30, salesforce 15, bioptic 14, vse 12, bratislava 12, workshop284 4 + ~15 šum (`test*`, `unknown`, `?w=cak`, `Masterclass`)
+  - Kvadranty: casual_skeptic 62 (30 %), optimistic_power_user 57 (28 %), casual_enthusiast 47 (23 %), realistic_power_user 40 (19 %)
+  - X avg 49.6, Y avg 51.0 — rebalance X-osy (Core 0.7 / Bonus 0.3) trefil střed mapy podle plánu
+  - Demografie vyplněna v 98 % — i online publikum to skipuje minimálně
+  - Verze: vše 0.1.0 (3 řádky bez verze, asi starší)
+
+### Otevřené úkoly po této session
+
+1. **Kalibrační analýza** — z 146 workshopových + 45 online datapointů odvodit:
+   - jestli prahy kvadrantů (50/50) sedí, nebo je posunout (3-stavová klasifikace?)
+   - kde leží 90. percentil Q5 — jestli cap 90 nedosahuje nikdo (= OK) nebo se trefuje strop (= roztříštit)
+   - korelace mezi self-rating (Q6) a behaviorálním X — sanity check, že self-rating je opravdu šum
+   - rozdíly online vs. workshop publikum (sebevýběr vs. firemní)
+2. **Cleanup Sheet:** smazat / přefiltrovat šum (`?w=cak`, `unknown`, `test*`, `Masterclass`, `smoke-*`). Před mazáním se Miloš musí explicitně potvrdit.
+3. **Sync `docs/design.md`** s aktuálním stavem otázek a scoringu.
+
+---
+
+## Historie: session 2026-05-13
+
+**Stav po session:** X-osa formule přepracována na dvousložkový model (Core 0.7 / Bonus 0.3). Frontend committen, Apps Script redeploynut, `backfillScores()` spuštěn (cca 131 řádků přepsáno).
 
 ## Změny v session 2026-05-13
 
