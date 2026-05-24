@@ -8,7 +8,7 @@ Use case: na začátku workshopu Milos zobrazí QR kód, účastníci vyplní te
 
 ## Aktuální stav
 
-Fáze: **v0.4 — online sběr běží.** Workshop-ready, čeká se na první ostrý workshop a na desítky až stovky online datapointů pro kalibraci.
+Fáze: **v0.5 — proběhlo 6+ ostrých workshopů, ~205 datapointů v databázi (2026-04-27 → 2026-05-22).** Workshop flow funguje, máme dost dat na kalibraci vah.
 
 - [x] Frontend dotazníku (10 otázek + Q11 nepovinná demografie + auto-advance + result screen)
 - [x] Apps Script backend (zápis do Google Sheets + Claude tools API)
@@ -19,9 +19,10 @@ Fáze: **v0.4 — online sběr běží.** Workshop-ready, čeká se na první os
 - [x] Online mód: `workshop_id = "online"` default pro web visitors, oddělený od workshop datasetů
 - [x] Volitelná demografie: věk, vzdělání, obor, pohlaví (+ „Nechci uvést" + Skip celé obrazovky)
 - [x] Deploy: Netlify auto-deploy z `main` → `kdojsem.inspiruj.se` (default URL `famous-torte-f2e74a.netlify.app` zůstává)
-- [ ] První ostrý test na workshopu
-- [ ] Kalibrace vah z reálných dat (prahy kvadrantů, váhy Q5/Q6/Q7, X_max)
+- [x] **Ostré workshopy proběhly:** cak (59), hluboka (30), salesforce (15), bioptic (14), vse (12), bratislava (12), workshop284 (4) + online (45). Demografie vyplněna v 98 %.
+- [ ] Kalibrace vah z reálných dat (prahy kvadrantů, váhy Q5/Q6/Q7, X_max) — data jsou, čeká se na analýzu. Prvotní pohled: X avg 49.6, Y avg 51.0 → střed mapy sedí, rebalance X-osy z 2026-05-13 funguje. Kvadranty zhruba vyrovnané (62/57/47/40).
 - [ ] Aktualizace `docs/design.md` — z poslední session (Q3/Q5/Q6/Q7/Q9 nová znění + odstraněné LLM modifikátory) je out-of-sync; ground truth je `src/questions.js` + `apps-script/webhook.gs`
+- [ ] Drobný cleanup v Sheetu: 1× `?w=cak` (řetězec se vplazil do workshop_id), 5× `unknown`, několik `test*` řádků — pro analýzu filtrovat ven.
 
 ---
 
