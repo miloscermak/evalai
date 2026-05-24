@@ -18,7 +18,7 @@
       'meta.description': 'Krátký dotazník pro workshopy Inspiruj.se. Tři minuty, deset otázek, mapa tvého vztahu k AI.',
       'footer.preparedBy': 'Připravil',
       'footer.suffix': '· anonymní · ~3 minuty',
-      'footer.langToggle': 'English version',
+      'lang.toggle': 'English',
 
       // welcome
       'welcome.h1': 'Kde jsi na mapě AI?',
@@ -243,7 +243,7 @@
       'meta.description': 'A short quiz for Inspiruj.se workshops. Three minutes, ten questions, a map of your relationship with AI.',
       'footer.preparedBy': 'Built by',
       'footer.suffix': '· anonymous · ~3 minutes',
-      'footer.langToggle': 'Česká verze',
+      'lang.toggle': 'Česky',
 
       'welcome.h1': 'Where are you on the AI map?',
       'welcome.intro1': 'Since April 2023, Inspiruj.se has been running workshops on generative AI. Over that time, we developed a method for placing workshop participants — and AI users in general — on a map. Curious what kind of user you are? Give us three minutes. Ten questions and you\'ll know.',

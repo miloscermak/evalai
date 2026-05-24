@@ -668,19 +668,27 @@
     `;
   }
 
-  // ──────── footer (jazyková přepínací linka) ────────
+  // ──────── footer + lang toggle ────────
 
   function setupFooter() {
     const footer = document.querySelector('.footer small');
-    if (!footer) return;
+    if (footer) {
+      footer.innerHTML = `${escapeHtml(tl('footer.preparedBy'))} <a href="https://inspiruj.se" target="_blank" rel="noopener">Inspiruj.se</a> ${escapeHtml(tl('footer.suffix'))}`;
+    }
+    setupLangToggle();
+  }
+
+  // Tlačítko CZ/EN vpravo nahoře. Klik přepne jazyk přes ?lang= a zachová
+  // ostatní parametry (workshop_id atp.).
+  function setupLangToggle() {
+    const btn = document.getElementById('lang-toggle');
+    if (!btn) return;
     const otherLang = state.lang === 'en' ? 'cs' : 'en';
     const otherUrl = new URL(window.location.href);
-    if (otherLang === 'en') {
-      otherUrl.searchParams.set('lang', 'en');
-    } else {
-      otherUrl.searchParams.delete('lang');
-    }
-    footer.innerHTML = `${escapeHtml(tl('footer.preparedBy'))} <a href="https://inspiruj.se" target="_blank" rel="noopener">Inspiruj.se</a> ${escapeHtml(tl('footer.suffix'))} · <a href="${otherUrl.pathname + otherUrl.search}">${escapeHtml(tl('footer.langToggle'))}</a>`;
+    if (otherLang === 'en') otherUrl.searchParams.set('lang', 'en');
+    else                    otherUrl.searchParams.delete('lang');
+    btn.textContent = tl('lang.toggle');
+    btn.href = otherUrl.pathname + (otherUrl.search || '');
   }
 
   // ──────── helpers ────────

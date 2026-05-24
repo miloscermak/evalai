@@ -52,6 +52,17 @@
       <div class="ql-row"><span class="ql-q br"></span> ${escapeHtml(tl('dashboard.legend.br'))} <small>${escapeHtml(tl('dashboard.legend.br.note'))}</small></div>
     `;
     document.getElementById('flag-note').textContent = tl('dashboard.flagNote');
+
+    // Lang toggle vpravo nahoře — zachová ?w= parametr, jen přepne lang.
+    const langBtn = document.getElementById('lang-toggle');
+    if (langBtn) {
+      const otherLang = lang === 'en' ? 'cs' : 'en';
+      const otherUrl = new URL(window.location.href);
+      if (otherLang === 'en') otherUrl.searchParams.set('lang', 'en');
+      else                    otherUrl.searchParams.delete('lang');
+      langBtn.textContent = tl('lang.toggle');
+      langBtn.href = otherUrl.pathname + (otherUrl.search || '');
+    }
   }
 
   let lastData = [];
