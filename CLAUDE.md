@@ -8,7 +8,7 @@ Use case: na začátku workshopu Milos zobrazí QR kód, účastníci vyplní te
 
 ## Aktuální stav
 
-Fáze: **v0.5 — proběhlo 6+ ostrých workshopů, ~205 datapointů v databázi (2026-04-27 → 2026-05-22).** Workshop flow funguje, máme dost dat na kalibraci vah.
+Fáze: **v0.6 — bilingva (CZ + EN) implementována.** Dotazník a dashboard podporují `?lang=en`, Claude píše feedback v jazyce účastníka. Předchozí v0.5 (proběhlo 6+ ostrých workshopů, ~205 datapointů 2026-04-27 → 2026-05-22) zůstává v platnosti — data v Sheetu se nemění.
 
 - [x] Frontend dotazníku (10 otázek + Q11 nepovinná demografie + auto-advance + result screen)
 - [x] Apps Script backend (zápis do Google Sheets + Claude tools API)
@@ -155,6 +155,33 @@ Pole `archetype` je nyní deterministický kvadrant (`optimistic_power_user` / `
 **Pozn. k pojmenování (2026-05-13):** dříve `beginner_enthusiast` / `beginner_skeptic`. Přejmenováno na `casual_*`, protože „beginner" evokuje délku používání, ale levá polovina X-osy zachycuje šíři a pokročilost, ne čas. Stará data v Sheetu jsou přepsána funkcí `backfillScores()`.
 
 **Pozn. k X-osa formuli (2026-05-13):** dvousložkový X = 0.7 × Core% + 0.3 × Bonus%, kde Core = Q1+Q2+Q4 (intenzita reálného používání, max 130), Bonus = Q3+Q5 (rozsah a pokročilost, max 150). Dřív byl prostý vážený součet / 280, který přetlačoval Q5 (32 % váhy) a tlačil typické workshopové publikum pod X=50. Nová formule: X=50 ≈ denní uživatel jednoho nástroje. Checkpoint před změnou: git tag `v0.4-pre-x-rebalance`.
+
+---
+
+## Internacionalizace (v0.6)
+
+Frontend i LLM výstup podporují dva jazyky: **CZ** (default) a **EN** (`?lang=en` v URL). Architektura:
+
+- **`src/i18n.js`** — jeden objekt `EVALAI_I18N = { cs: {...}, en: {...} }` s plochou mapou klíčů. Helper `window.t(key, lang, vars)` s fallbackem na EN → klíč.
+- **`src/questions.js`** — pouze struktura (id, type, value kódy, váhy). Žádné textové labely. Render skládá klíče typu `q1.opt.gt2y` a hledá je v i18n.
+- **`src/app.js`** + **`src/dashboard.js`** — čtou jazyk přes `window.evalaiGetLang()` (whitelist cs|en, default cs). Nastavují `<html lang>` a `<title>` dynamicky.
+- **Payload na backend** obsahuje `lang: 'cs' | 'en'`.
+- **Apps Script** — `processSubmission` přečte `payload.lang`, `buildFeedbackPrompt(lang, …)` větví na CZ/EN verzi promptu, paralelní `ANSWER_LABELS.cs` / `.en` slovníky pro otázky.
+
+### Co se NEukládá
+
+- `lang` se v Sheetu **nezapisuje** (žádný nový sloupec). Pokud bude později potřeba EN/CZ separovat pro analýzu, derivuje se z `workshop_id` nebo z jazyka `interpretation` (samotný text v Sheetu prozradí jazyk).
+
+### Co zůstává jen česky
+
+- Admin `src/start.html`, `src/start.js` — používá je výhradně Milos.
+
+### Sekvence při přidání nové otázky / nového stringu
+
+1. Přidat klíč do `src/i18n.js` v `cs:` **i** `en:` sekci.
+2. Pokud jde o novou otázku/option: přidat strukturu do `src/questions.js` + váhu do `apps-script/webhook.gs`.
+3. LLM slovník (`ANSWER_LABELS.cs` + `.en`) v `webhook.gs` musí znát value kód.
+4. Manuální redeploy Apps Script.
 
 ---
 

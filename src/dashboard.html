@@ -11,14 +11,14 @@
 <body class="dashboard-body">
   <header class="dash-header">
     <div class="dash-title">
-      <strong>EvalAI · mapa účastníků</strong>
+      <strong id="dash-brand">EvalAI · mapa účastníků</strong>
       <span id="workshop-label"></span>
     </div>
     <div class="dash-meta">
-      <span id="count">0 účastníků</span>
-      <button id="export-json-btn" class="btn-pill" title="Stáhnout všechna data jako JSON">JSON</button>
-      <button id="export-md-btn" class="btn-pill" title="Stáhnout přehled jako Markdown">MD</button>
-      <button id="refresh-btn" class="btn-icon" title="Obnovit">↻</button>
+      <span id="count">0</span>
+      <button id="export-json-btn" class="btn-pill">JSON</button>
+      <button id="export-md-btn" class="btn-pill">MD</button>
+      <button id="refresh-btn" class="btn-icon">↻</button>
     </div>
   </header>
 
@@ -29,22 +29,18 @@
     </div>
 
     <aside class="legend">
-      <div class="quadrant-legend">
-        <div class="ql-row"><span class="ql-q tl"></span> Začátečník-nadšenec <small>(nezkušený, pozitivní)</small></div>
-        <div class="ql-row"><span class="ql-q tr"></span> Optimistický power user <small>(zkušený, pozitivní)</small></div>
-        <div class="ql-row"><span class="ql-q bl"></span> Začátečník-skeptik <small>(nezkušený, opatrný)</small></div>
-        <div class="ql-row"><span class="ql-q br"></span> Realistický power user <small>(zkušený, opatrný)</small></div>
-      </div>
+      <div class="quadrant-legend" id="quadrant-legend"></div>
       <div class="archetype-key">
-        <small>Vlaječka <span class="flag">⚑</span> = animal přirovnání ukazuje na výrazně jiný postoj než ostatní odpovědi (zajímavý případ).</small>
+        <small id="flag-note"></small>
       </div>
     </aside>
   </main>
 
-  <div id="loading" class="loading" hidden>Načítám…</div>
+  <div id="loading" class="loading" hidden></div>
   <div id="error" class="error-banner" hidden></div>
 
   <script src="config.js"></script>
+  <script src="i18n.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

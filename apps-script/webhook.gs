@@ -80,6 +80,7 @@ function jsonResponse(obj) {
 
 function processSubmission(payload) {
   const a = payload.answers || {};
+  const lang = (payload.lang === 'en') ? 'en' : 'cs';  // whitelist; default cs
 
   const xRaw = scoreX(a);
   const yRaw = scoreY(a);
@@ -92,9 +93,10 @@ function processSubmission(payload) {
   // Claude píše dvě textová pole: tvrdé hodnocení dotazníku + měkkou
   // poetickou úvahu nad kombinací zvířat. Žádné modifikátory, žádný
   // alternativní archetype. Pokud API selže, použijeme prázdné stringy.
+  // Lang ovlivňuje JEN jazyk výstupu — scoring, sheet schema beze změny.
   let llm = { interpretation: '', animal_note: '' };
   try {
-    llm = generateFeedback(a, xFinal, yFinal, quadrant);
+    llm = generateFeedback(a, xFinal, yFinal, quadrant, lang);
   } catch (err) {
     console.warn('Claude API call failed, falling back to empty:', err);
     llm.animal_note = '[Claude API error: ' + err + ']';
@@ -234,17 +236,21 @@ function scoreY(a) {
 // pozici NEMĚNÍ — jen ji slovně okomentuje a u animal note kreativně rozvine
 // vztah obou zvířat. Zvířata jsou výslovně „měkká věda", ne klasifikační vstup.
 
-function generateFeedback(answers, xFinal, yFinal, quadrant) {
+function generateFeedback(answers, xFinal, yFinal, quadrant, lang) {
   const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY není v Script Properties.');
   }
 
-  const prompt = buildFeedbackPrompt(answers, xFinal, yFinal, quadrant);
+  const prompt = buildFeedbackPrompt(answers, xFinal, yFinal, quadrant, lang);
+
+  const toolDescription = (lang === 'en')
+    ? 'Record the participant\'s feedback — a hard interpretation of the questionnaire and a poetic reflection on the two animals.'
+    : 'Zaznamenej slovní hodnocení účastníka — interpretaci dotazníku a poetickou úvahu nad zvířaty.';
 
   const tool = {
     name: 'record_feedback',
-    description: 'Zaznamenej slovní hodnocení účastníka — interpretaci dotazníku a poetickou úvahu nad zvířaty.',
+    description: toolDescription,
     input_schema: {
       type: 'object',
       properties: {
@@ -291,32 +297,86 @@ function generateFeedback(answers, xFinal, yFinal, quadrant) {
   };
 }
 
-function buildFeedbackPrompt(a, xFinal, yFinal, quadrant) {
-  // Lidsky čitelné popisky odpovědí pro Claude (ať si nemusí domýšlet kódy).
-  const Q1 = { never: 'AI nikdy nepoužil(a)', lt6m: 'méně než 6 měsíců', '6m_2y': '6 měsíců až 2 roky', gt2y: 'víc než 2 roky' };
-  const Q2 = { never: 'nepoužívá', monthly: 'měsíčně', weekly: 'týdně', daily: 'denně', always: 'několikrát denně' };
-  const Q3 = {
-    chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Microsoft Copilot',
-    perplexity: 'Perplexity', notebooklm: 'NotebookLM', image: 'generování obrázků',
-    audio: 'generování audia', video: 'generování videa', other: 'jiný AI nástroj',
-    internal: 'vlastní firemní AI nástroj', none: 'žádný',
-  };
-  const Q4 = { no: 'jen text', one: 'jednu modalitu navíc', multi: 'více modalit (obrázek/audio/video/data)' };
-  const Q5 = {
-    long_prompt: 'píše komplexní prompty', chatbot_max: 'využívá chatboty na maximum (projekty, deep research)',
-    vibecoding: 'vibecoduje vlastní aplikace', automation: 'staví automatizace',
-    agent: 'buduje agenty / asistenty na delegování úkolů',
-    custom_gpt: 'staví custom GPT', own_data: 'pracuje s vlastními daty', api: 'volá API přímo',
-    none: 'nic z pokročilých technik',
-  };
-  const Q8 = {
-    hallucinations: 'halucinace / chybné odpovědi', privacy: 'soukromí a data',
-    jobs: 'dopad na pracovní místa', authenticity: 'autenticita a důvěra v obsah',
-    ethics: 'etické otázky', dependence: 'závislost / atrofie dovedností',
-    none: 'žádné výrazné obavy',
-  };
-  const SCALE = { 1: '1 (zcela nesouhlasím)', 2: '2', 3: '3 (neutrálně)', 4: '4', 5: '5 (zcela souhlasím)' };
+// Slovníky odpovědí pro LLM — lokalizované. Klíče (q1, q2, q3…) odpovídají
+// value kódům z frontendu (src/questions.js + src/i18n.js).
+// EN slovníky musí slovně sedět s EN labely v i18n.js, ale tady jsou pro LLM
+// (ne pro UI), takže lze zvolit kratší/popisnější formy.
+const ANSWER_LABELS = {
+  cs: {
+    Q1: { never: 'AI nikdy nepoužil(a)', lt6m: 'méně než 6 měsíců', '6m_2y': '6 měsíců až 2 roky', gt2y: 'víc než 2 roky' },
+    Q2: { never: 'nepoužívá', monthly: 'měsíčně', weekly: 'týdně', daily: 'denně', always: 'několikrát denně' },
+    Q3: {
+      chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Microsoft Copilot',
+      perplexity: 'Perplexity', notebooklm: 'NotebookLM', image: 'generování obrázků',
+      audio: 'generování audia', video: 'generování videa', other: 'jiný AI nástroj',
+      internal: 'vlastní firemní AI nástroj', none: 'žádný',
+    },
+    Q4: { no: 'neplatí za AI', one: 'jeden placený nástroj', multi: 'dva a víc placených nástrojů' },
+    Q5: {
+      long_prompt: 'píše komplexní prompty', chatbot_max: 'využívá chatboty na maximum (projekty, deep research)',
+      vibecoding: 'vibecoduje vlastní aplikace', automation: 'staví automatizace',
+      agent: 'buduje agenty / asistenty na delegování úkolů',
+      custom_gpt: 'staví custom GPT', own_data: 'pracuje s vlastními daty', api: 'volá API přímo',
+      none: 'nic z pokročilých technik',
+    },
+    Q8: {
+      hallucinations: 'halucinace / chybné odpovědi', privacy: 'soukromí a data',
+      jobs: 'dopad na pracovní místa', authenticity: 'autenticita a důvěra v obsah',
+      dependency: 'závislost na AI', ethics: 'etické otázky', safety: 'bezpečnost a zneužití',
+      unknown: 'strach z neznámého', ecology: 'ekologická zátěž',
+      dependence: 'závislost / atrofie dovedností',
+      none: 'žádné výrazné obavy',
+    },
+    SCALE: { 1: '1 (zcela nesouhlasím)', 2: '2', 3: '3 (neutrálně)', 4: '4', 5: '5 (zcela souhlasím)' },
+    QUAD: {
+      optimistic_power_user: 'Optimistický power user (pokročilý uživatel, optimismus)',
+      realistic_power_user:  'Realistický power user (pokročilý uživatel, skepticky střízlivý postoj)',
+      casual_enthusiast:     'Běžný uživatel-nadšenec (základní použití, optimismus)',
+      casual_skeptic:        'Běžný uživatel-skeptik (základní použití, skeptický postoj)',
+      beginner_enthusiast:   'Začátečník-nadšenec (legacy)',
+      beginner_skeptic:      'Začátečník-skeptik (legacy)',
+    },
+  },
+  en: {
+    Q1: { never: 'never used AI', lt6m: 'less than 6 months', '6m_2y': '6 months to 2 years', gt2y: 'more than 2 years' },
+    Q2: { never: 'never', monthly: 'monthly', weekly: 'weekly', daily: 'daily', always: 'many times a day' },
+    Q3: {
+      chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Microsoft Copilot',
+      perplexity: 'Perplexity', notebooklm: 'NotebookLM', image: 'image generation',
+      audio: 'audio generation', video: 'video generation', other: 'another AI tool',
+      internal: 'in-house company AI tool', none: 'none',
+    },
+    Q4: { no: 'does not pay for any AI', one: 'one paid tool', multi: 'two or more paid tools' },
+    Q5: {
+      long_prompt: 'writes complex, deliberate prompts',
+      chatbot_max: 'pushes chatbots to the max (projects, deep research)',
+      vibecoding: 'vibecodes their own apps', automation: 'builds automations',
+      agent: 'builds agents / assistants to delegate tasks to',
+      custom_gpt: 'builds custom GPTs', own_data: 'works with their own data', api: 'calls APIs directly',
+      none: 'none of the advanced techniques',
+    },
+    Q8: {
+      hallucinations: 'hallucinations / false answers', privacy: 'privacy and data',
+      jobs: 'job loss', authenticity: 'authenticity and trust in content',
+      dependency: 'dependence on AI', ethics: 'ethical questions', safety: 'safety and misuse',
+      unknown: 'fear of the unknown', ecology: 'environmental footprint',
+      dependence: 'dependence / skill atrophy',
+      none: 'no major concerns',
+    },
+    SCALE: { 1: '1 (strongly disagree)', 2: '2', 3: '3 (neutral)', 4: '4', 5: '5 (strongly agree)' },
+    QUAD: {
+      optimistic_power_user: 'Optimistic power user (advanced user, optimistic)',
+      realistic_power_user:  'Realistic power user (advanced user, skeptical and grounded)',
+      casual_enthusiast:     'Casual enthusiast (basic usage, optimistic)',
+      casual_skeptic:        'Casual skeptic (basic usage, skeptical)',
+      beginner_enthusiast:   'Casual enthusiast (legacy)',
+      beginner_skeptic:      'Casual skeptic (legacy)',
+    },
+  },
+};
 
+function buildFeedbackPrompt(a, xFinal, yFinal, quadrant, lang) {
+  const L = ANSWER_LABELS[lang] || ANSWER_LABELS.cs;
   const list = (arr, dict) => (Array.isArray(arr) ? arr : [arr]).filter(Boolean).map(v => dict[v] || v).join(', ');
 
   const q10 = a.q10 || {};
@@ -325,37 +385,77 @@ function buildFeedbackPrompt(a, xFinal, yFinal, quadrant) {
   const animalAi   = String(q10.animalAi   || '').slice(0, 80);
   const reasonAi   = String(q10.reasonAi   || '').slice(0, 400);
 
-  const QUAD_LABEL = {
-    optimistic_power_user: 'Optimistický power user (pokročilý uživatel, optimismus)',
-    realistic_power_user:  'Realistický power user (pokročilý uživatel, skepticky střízlivý postoj)',
-    casual_enthusiast:     'Běžný uživatel-nadšenec (základní použití, optimismus)',
-    casual_skeptic:        'Běžný uživatel-skeptik (základní použití, skeptický postoj)',
-    // legacy aliasy pro stará data v Sheetu (před backfillem)
-    beginner_enthusiast:   'Začátečník-nadšenec (legacy)',
-    beginner_skeptic:      'Začátečník-skeptik (legacy)',
-  };
+  if (lang === 'en') {
+    return [
+      'You are an experienced AI instructor evaluating a workshop participant.',
+      'Your task: write two short passages of feedback. Write entirely in English.',
+      '',
+      '## Hard data from the questionnaire (source of classification)',
+      '',
+      '- Q1 experience: ' + (L.Q1[a.q1] || a.q1 || '?'),
+      '- Q2 frequency: ' + (L.Q2[a.q2] || a.q2 || '?'),
+      '- Q3 tools: ' + (list(a.q3, L.Q3) || '—'),
+      '- Q4 paid services: ' + (L.Q4[a.q4] || a.q4 || '?'),
+      '- Q5 advanced techniques: ' + (list(a.q5, L.Q5) || '—'),
+      '- Q6 "Within 5 years AI will match humans in most sophisticated skills": ' + (L.SCALE[a.q6] || '?'),
+      '- Q7 "AI will change the world and my life for the better": ' + (L.SCALE[a.q7] || '?'),
+      '- Q8 concerns: ' + (list(a.q8, L.Q8) || '—'),
+      '- Q9 "AI development and use will need to be strictly regulated and restricted": ' + (L.SCALE[a.q9] || '?'),
+      '',
+      '## Computed scores (deterministic from Q1–Q9, do not change them)',
+      '',
+      '- X (experience, 0–100): **' + xFinal + '**',
+      '- Y (attitude, 0–100; 50 = neutral): **' + yFinal + '**',
+      '- Quadrant: **' + (L.QUAD[quadrant] || quadrant) + '**',
+      '',
+      '## Soft data — projective animals (Q10)',
+      '',
+      '- Compares themself to: "' + (animalSelf || '—') + '"',
+      '  Reason: ' + (reasonSelf ? '"' + reasonSelf + '"' : '(not given)'),
+      '- Compares AI to: "' + (animalAi || '—') + '"',
+      '  Reason: ' + (reasonAi ? '"' + reasonAi + '"' : '(not given)'),
+      '',
+      '## What to write',
+      '',
+      'Call the tool record_feedback. Address the participant as "you" (informal but respectful).',
+      'No filler like "you can clearly see…", "for sure…", "keep up the good work". Be specific, not generic.',
+      'You MUST write both fields entirely in English — even if the participant\'s animal answers contain a non-English word, your response stays in English.',
+      '',
+      '### Field "interpretation" (3–4 sentences, max 700 chars) — HARD ANALYSIS',
+      'Based EXCLUSIVELY on Q1–Q9 and the computed quadrant. Do not mix in the animals here.',
+      '- Name the user type in one sentence (stay aligned with the quadrant).',
+      '- Highlight 1 concrete signal from the answers (e.g. specific tools in Q3, an advanced technique from Q5, a concern from Q8, or a tension between Q6/Q7/Q9).',
+      '- Add 1–2 sentences of concrete recommendation for where to take their AI use next — tailored to what they actually do. Must be actionable, not boilerplate.',
+      '',
+      '### Field "animal_note" (3–4 sentences, max 700 chars) — POETIC REFLECTION',
+      'Here you have freedom. Reflect on the RELATIONSHIP between the two animals (self × AI) and connect it with what you know about this person from the hard data. Allow yourself a metaphor, a small theory, a touch of provocation. The goal is to entertain and surprise, not to classify. This is explicitly "soft science" — no claims about the user type, no predictions. Just a poetic punchline.',
+      '',
+      'Call record_feedback with both fields filled in.',
+    ].join('\n');
+  }
 
+  // ─── CZ (default) ───
   return [
     'Jsi zkušený lektor AI, který hodnotí účastníka workshopu.',
-    'Tvým úkolem je napsat dvě krátké pasáže slovního hodnocení.',
+    'Tvým úkolem je napsat dvě krátké pasáže slovního hodnocení. Piš výhradně česky.',
     '',
     '## Tvrdá data z dotazníku (zdroj klasifikace)',
     '',
-    '- Q1 zkušenost: ' + (Q1[a.q1] || a.q1 || '?'),
-    '- Q2 frekvence: ' + (Q2[a.q2] || a.q2 || '?'),
-    '- Q3 nástroje: ' + (list(a.q3, Q3) || '—'),
-    '- Q4 modality: ' + (Q4[a.q4] || a.q4 || '?'),
-    '- Q5 pokročilé techniky: ' + (list(a.q5, Q5) || '—'),
-    '- Q6 „AI bude do 5 let stejně dobrá jako lidi": ' + (SCALE[a.q6] || '?'),
-    '- Q7 „AI změní svět i můj život k lepšímu": ' + (SCALE[a.q7] || '?'),
-    '- Q8 obavy: ' + (list(a.q8, Q8) || '—'),
-    '- Q9 „Vývoj a používání AI bude třeba tvrdě regulovat a omezovat": ' + (SCALE[a.q9] || '?'),
+    '- Q1 zkušenost: ' + (L.Q1[a.q1] || a.q1 || '?'),
+    '- Q2 frekvence: ' + (L.Q2[a.q2] || a.q2 || '?'),
+    '- Q3 nástroje: ' + (list(a.q3, L.Q3) || '—'),
+    '- Q4 placené služby: ' + (L.Q4[a.q4] || a.q4 || '?'),
+    '- Q5 pokročilé techniky: ' + (list(a.q5, L.Q5) || '—'),
+    '- Q6 „AI bude do 5 let stejně dobrá jako lidi": ' + (L.SCALE[a.q6] || '?'),
+    '- Q7 „AI změní svět i můj život k lepšímu": ' + (L.SCALE[a.q7] || '?'),
+    '- Q8 obavy: ' + (list(a.q8, L.Q8) || '—'),
+    '- Q9 „Vývoj a používání AI bude třeba tvrdě regulovat a omezovat": ' + (L.SCALE[a.q9] || '?'),
     '',
     '## Vypočítané skóre (deterministicky z Q1–Q9, nehýbej s ním)',
     '',
     '- X (zkušenost, 0–100): **' + xFinal + '**',
     '- Y (postoj, 0–100; 50 = neutrál): **' + yFinal + '**',
-    '- Kvadrant: **' + (QUAD_LABEL[quadrant] || quadrant) + '**',
+    '- Kvadrant: **' + (L.QUAD[quadrant] || quadrant) + '**',
     '',
     '## Měkká data — projektivní zvířata (Q10)',
     '',
@@ -368,6 +468,7 @@ function buildFeedbackPrompt(a, xFinal, yFinal, quadrant) {
     '',
     'Vyplň tool record_feedback. Oslovuj účastníka „ty" (neformálně, ale s respektem).',
     'Žádné fráze typu „je vidět, že…", „určitě…", „pokračuj v dobré práci". Buď konkrétní, ne generický.',
+    'Obě pole piš výhradně česky — i když účastník napsal zvířata anglicky nebo jinak, ty odpovídáš česky.',
     '',
     '### Pole "interpretation" (3–4 věty, max 700 znaků) — TVRDÁ ANALÝZA',
     'Vychází VÝHRADNĚ z Q1–Q9 a vypočítaného kvadrantu. Zvířata sem nepleť.',

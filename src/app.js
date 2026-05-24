@@ -6,6 +6,9 @@
  * Skóre se NEPOČÍTÁ na frontendu — všechny syrové odpovědi jdou na webhook
  * a Apps Script provede scoring + animal modifikátor přes Claude API.
  * Tím je single source of truth pro scoring v Apps Scriptu.
+ *
+ * Lang: čte se z ?lang= (whitelist cs|en, default cs) přes window.evalaiGetLang().
+ * Lokalizace přes window.t(key) — viz src/i18n.js.
  */
 
 (function () {
@@ -20,6 +23,7 @@
   // ──────── state ────────
 
   const state = {
+    lang: (window.evalaiGetLang ? window.evalaiGetLang() : 'cs'),
     workshop: getWorkshopFromUrl() || 'online',
     workshopFromUrl: !!getWorkshopFromUrl(),
     name: '',
@@ -32,6 +36,15 @@
     submitError: null,
     result: null,                   // odpověď z webhooku po submitu (score, archetype, interpretation…)
   };
+
+  // shorthand: lokalizovaný překlad ve state.lang
+  function tl(key, vars) { return window.t(key, state.lang, vars); }
+
+  // Nastav <html lang> a <title> podle aktuálního jazyka (a11y + SEO).
+  document.documentElement.lang = state.lang;
+  document.title = tl('meta.title');
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) metaDesc.setAttribute('content', tl('meta.description'));
 
   function getWorkshopFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -88,31 +101,31 @@
     el.className = 'screen welcome';
 
     el.innerHTML = `
-      <h1>Kde jsi na mapě AI?</h1>
-      <p>Inspiruj.se od dubna 2023 pořádá workshopy pro zájemce o generativní AI. Za ten čas jsme vyvinuli metodiku, jak na mapu umístit účastníky workshopů — i obecně uživatele AI nástrojů. Zajímá tě, jakým typem uživatele jsi? Dej nám tři minuty. Deset otázek, a víš to.</p>
-      <p>Anonymní — stačí křestní jméno, e-mail nepotřebujeme.</p>
+      <h1>${escapeHtml(tl('welcome.h1'))}</h1>
+      <p>${escapeHtml(tl('welcome.intro1'))}</p>
+      <p>${escapeHtml(tl('welcome.intro2'))}</p>
 
       <div class="field" style="margin-top: 24px;">
-        <label class="field-label" for="name-input">Tvé křestní jméno</label>
+        <label class="field-label" for="name-input">${escapeHtml(tl('welcome.nameLabel'))}</label>
         <input type="text" id="name-input" maxlength="40" autocomplete="given-name"
                value="${escapeAttr(state.name)}"
-               placeholder="např. Pavla">
+               placeholder="${escapeAttr(tl('welcome.namePlaceholder'))}">
       </div>
 
       ${state.workshopFromUrl
-        ? `<div class="welcome-meta"><span>Workshop: <strong>${escapeHtml(state.workshop)}</strong></span></div>`
+        ? `<div class="welcome-meta"><span>${escapeHtml(tl('welcome.workshopMeta'))} <strong>${escapeHtml(state.workshop)}</strong></span></div>`
         : `<div class="field">
-             <label class="field-label" for="workshop-input">Kód workshopu</label>
+             <label class="field-label" for="workshop-input">${escapeHtml(tl('welcome.workshopLabel'))}</label>
              <input type="text" id="workshop-input" maxlength="40"
                     value="${escapeAttr(state.workshop)}"
-                    placeholder="online">
-             <small class="field-help">Vyplňuješ na webu? Nech <code>online</code>. Jsi na workshopu? Přepiš na kód, který ti dal lektor.</small>
+                    placeholder="${escapeAttr(tl('welcome.workshopPlaceholder'))}">
+             <small class="field-help">${tl('welcome.workshopHelp')}</small>
            </div>`}
 
       <div class="error-msg" id="error-msg"></div>
 
       <div class="nav">
-        <button class="btn btn-primary" id="start-btn">Začít</button>
+        <button class="btn btn-primary" id="start-btn">${escapeHtml(tl('welcome.start'))}</button>
       </div>
     `;
 
@@ -139,7 +152,7 @@
 
     startBtn.addEventListener('click', () => {
       if (!state.name || state.name.length < 2) {
-        errorMsg.textContent = 'Napiš prosím své křestní jméno.';
+        errorMsg.textContent = tl('welcome.errorName');
         nameInput.focus();
         return;
       }
@@ -175,26 +188,31 @@
 
     const isLast = q.id === 'q11';
     const isDemographics = q.type === 'demographics';
+    const section = tl(q.sectionKey);
     const sectionLabel = isDemographics
-      ? `${q.section} · nepovinné`
-      : `${q.section} · otázka ${q.n} z 10`;
+      ? `${section} · ${tl('form.sectionDemoSuffix')}`
+      : `${section} · ${tl('form.sectionQNofTotal', { n: q.n })}`;
     const primaryLabel = isLast
-      ? (state.submitting ? 'Odesílám…' : 'Pokračovat k výsledku')
-      : 'Pokračovat';
+      ? (state.submitting ? tl('form.submitting') : tl('form.continueResult'))
+      : tl('form.continue');
+
+    const title    = tl(q.id + '.title');
+    const subtitle = tl(q.id + '.subtitle');
+    const hasSubtitle = subtitle !== (q.id + '.subtitle'); // klíč existuje, není to fallback na klíč
 
     el.innerHTML = `
       <div class="section-tag">${escapeHtml(sectionLabel)}</div>
-      <h2 class="q-title">${escapeHtml(q.title)}</h2>
-      ${q.subtitle ? `<p class="q-subtitle">${escapeHtml(q.subtitle)}</p>` : ''}
+      <h2 class="q-title">${escapeHtml(title)}</h2>
+      ${hasSubtitle ? `<p class="q-subtitle">${escapeHtml(subtitle)}</p>` : ''}
       ${body}
       <div class="error-msg" id="error-msg"></div>
       <div class="nav">
-        <button class="btn btn-secondary" id="back-btn" type="button" aria-label="Zpět">←</button>
-        <button class="btn btn-primary" id="next-btn" type="button">${primaryLabel}</button>
+        <button class="btn btn-secondary" id="back-btn" type="button" aria-label="${escapeAttr(tl('form.back'))}">←</button>
+        <button class="btn btn-primary" id="next-btn" type="button">${escapeHtml(primaryLabel)}</button>
       </div>
       ${isDemographics ? `
         <div class="demographics-skip">
-          <button class="link-btn" id="skip-btn" type="button">Přeskočit a rovnou na výsledek</button>
+          <button class="link-btn" id="skip-btn" type="button">${escapeHtml(tl('form.skip'))}</button>
         </div>
       ` : ''}
     `;
@@ -227,6 +245,7 @@
       const selected = isMulti
         ? selectedSet.has(opt.value)
         : current === opt.value;
+      const label = tl(q.id + '.opt.' + opt.value);
       return `
         <button class="option ${selected ? 'selected' : ''}"
                 data-type="${q.type}"
@@ -234,7 +253,7 @@
                 ${opt.exclusive ? 'data-exclusive="1"' : ''}
                 type="button">
           <span class="indicator"></span>
-          <span>${escapeHtml(opt.label)}</span>
+          <span>${escapeHtml(label)}</span>
         </button>
       `;
     }).join('');
@@ -257,8 +276,8 @@
       <div class="scale">
         <div class="scale-buttons">${buttons.join('')}</div>
         <div class="scale-labels">
-          <span>${escapeHtml(q.leftLabel)}</span>
-          <span>${escapeHtml(q.rightLabel)}</span>
+          <span>${escapeHtml(tl('scale.left'))}</span>
+          <span>${escapeHtml(tl('scale.right'))}</span>
         </div>
       </div>
     `;
@@ -271,33 +290,35 @@
 
     const renderField = f => {
       const val = current[f.key] || '';
+      const label = tl(f.labelKey);
+      const placeholder = f.placeholderKey ? tl(f.placeholderKey) : '';
       if (f.multiline) {
         return `
           <div class="field">
-            <label class="field-label">${escapeHtml(f.label)}</label>
+            <label class="field-label">${escapeHtml(label)}</label>
             <textarea data-key="${f.key}" maxlength="${f.maxLength}"
-                      placeholder="${escapeAttr(f.placeholder)}">${escapeHtml(val)}</textarea>
+                      placeholder="${escapeAttr(placeholder)}">${escapeHtml(val)}</textarea>
           </div>
         `;
       }
       return `
         <div class="field">
-          <label class="field-label">${escapeHtml(f.label)}</label>
+          <label class="field-label">${escapeHtml(label)}</label>
           <input type="text" data-key="${f.key}" maxlength="${f.maxLength}"
                  value="${escapeAttr(val)}"
-                 placeholder="${escapeAttr(f.placeholder)}">
+                 placeholder="${escapeAttr(placeholder)}">
         </div>
       `;
     };
 
     return `
       <div class="animal-pair">
-        <div class="animal-pair-title">Já</div>
+        <div class="animal-pair-title">${escapeHtml(tl('animal.selfTitle'))}</div>
         ${renderField(q.fields[0])}
         ${renderField(q.fields[1])}
       </div>
       <div class="animal-pair">
-        <div class="animal-pair-title">AI</div>
+        <div class="animal-pair-title">${escapeHtml(tl('animal.aiTitle'))}</div>
         ${renderField(q.fields[2])}
         ${renderField(q.fields[3])}
       </div>
@@ -310,18 +331,20 @@
     const current = state.answers[q.id] || {};
     return q.fields.map(f => {
       const selectedValue = current[f.key] || '';
+      const label = tl(f.labelKey);
       const opts = f.options.map(opt => {
         const isSelected = selectedValue === opt.value;
+        const optLabel = tl('q11.' + f.key + '.opt.' + opt.value);
         return `
           <button class="option demographic-option ${isSelected ? 'selected' : ''}"
                   data-field="${f.key}" data-value="${opt.value}" type="button">
-            ${escapeHtml(opt.label)}
+            ${escapeHtml(optLabel)}
           </button>
         `;
       }).join('');
       return `
         <div class="demographic-group">
-          <div class="demographic-label">${escapeHtml(f.label)}</div>
+          <div class="demographic-label">${escapeHtml(label)}</div>
           <div class="demographic-options">${opts}</div>
         </div>
       `;
@@ -406,7 +429,7 @@
       } else {
         // limit kontroly (Q8)
         if (q.maxSelections && current.size >= q.maxSelections) {
-          showError(`Vyber maximálně ${q.maxSelections} možnosti.`);
+          showError(tl('form.errorMaxSelections', { n: q.maxSelections }));
           return;
         }
         current.add(value);
@@ -446,7 +469,7 @@
 
   function handleNext(q, el) {
     if (!validate(q)) {
-      showError('Vyplň prosím odpověď, ať tě algoritmus zařadí přesně.');
+      showError(tl('form.errorRequired'));
       return;
     }
     clearError();
@@ -479,6 +502,7 @@
 
     const payload = {
       version: config.version || '0.1.0',
+      lang: state.lang,
       workshopId: state.workshop || 'unknown',
       name: state.name,
       timestamp: new Date().toISOString(),
@@ -543,8 +567,8 @@
       el.className = 'screen thanks computing';
       el.innerHTML = `
         <div class="computing-dots" aria-hidden="true"><span></span><span></span><span></span></div>
-        <h1>Děkujeme za vyplnění.</h1>
-        <p>Teď se počítá tvůj výsledek…</p>
+        <h1>${escapeHtml(tl('thanks.computing.h1'))}</h1>
+        <p>${escapeHtml(tl('thanks.computing.body'))}</p>
       `;
       return el;
     }
@@ -557,36 +581,36 @@
     // 3) Fallback — server zapsal, ale odpověď se nepřečetla (CORS/network)
     const el = document.createElement('div');
     el.className = 'screen thanks';
-    const dashUrl = 'dashboard.html' + (state.workshop ? '?w=' + encodeURIComponent(state.workshop) : '');
+    const dashUrl = dashboardUrl();
     el.innerHTML = `
       <div class="thanks-icon">✓</div>
-      <h1>Hotovo, díky.</h1>
-      <p>Tvé odpovědi jsou v systému. Podívej se, kde jsi na mapě:</p>
-      <a class="btn btn-primary thanks-cta" href="${dashUrl}">Ukaž mi mapu →</a>
-      ${config.webhookUrl ? '' : '<p style="color:var(--text-subtle);font-size:14px;margin-top:24px;">DEV mód: payload je v console (DevTools).</p>'}
+      <h1>${escapeHtml(tl('thanks.fallback.h1'))}</h1>
+      <p>${escapeHtml(tl('thanks.fallback.body'))}</p>
+      <a class="btn btn-primary thanks-cta" href="${dashUrl}">${escapeHtml(tl('thanks.fallback.cta'))}</a>
+      ${config.webhookUrl ? '' : `<p style="color:var(--text-subtle);font-size:14px;margin-top:24px;">${escapeHtml(tl('thanks.devNote'))}</p>`}
     `;
     return el;
   }
 
+  // Stejný workshop + lang carrier do dashboard URL.
+  function dashboardUrl() {
+    const params = new URLSearchParams();
+    if (state.workshop) params.set('w', state.workshop);
+    if (state.lang === 'en') params.set('lang', 'en');
+    const qs = params.toString();
+    return 'dashboard.html' + (qs ? '?' + qs : '');
+  }
+
   // ──────── result screen (po úspěšném submitu, když máme odpověď) ────────
 
-  const ARCHETYPE_LABELS = {
-    optimistic_power_user: 'Optimistický power user',
-    realistic_power_user:  'Realistický power user',
-    casual_enthusiast:     'Běžný uživatel-nadšenec',
-    casual_skeptic:        'Běžný uživatel-skeptik',
-    // legacy aliasy pro stará data
-    pragmatic_user:        'Pragmatický uživatel',
-    beginner_enthusiast:   'Běžný uživatel-nadšenec',
-    beginner_skeptic:      'Běžný uživatel-skeptik',
-    manager_proxy:         'Manažer (proxy uživatel)',
-    unclear:               'Smíšený typ',
-  };
+  function archetypeLabel(code) {
+    return tl('archetype.' + code);
+  }
 
   function renderResult(r) {
     const el = document.createElement('div');
     el.className = 'screen result';
-    const dashUrl = 'dashboard.html' + (state.workshop ? '?w=' + encodeURIComponent(state.workshop) : '');
+    const dashUrl = dashboardUrl();
     const x = Number(r.score_x) || 0;
     const y = Number(r.score_y) || 0;
     // Archetype pro nadpis odvozujeme z finálního kvadrantu (X/Y), ne z LLM
@@ -596,25 +620,25 @@
       x >= 50 && y <  50 ? 'realistic_power_user'  :
       x <  50 && y >= 50 ? 'casual_enthusiast'     :
                            'casual_skeptic';
-    const archLabel = ARCHETYPE_LABELS[quadrantArchetype];
+    const archLabel = archetypeLabel(quadrantArchetype);
 
     el.innerHTML = `
       <div class="thanks-icon">✓</div>
-      <h1>Tady jsi na mapě AI</h1>
+      <h1>${escapeHtml(tl('result.h1'))}</h1>
       <div class="result-map">${miniMapSvg(x, y, state.name)}</div>
       ${archLabel ? `<div class="result-archetype">${escapeHtml(archLabel)}</div>` : ''}
       ${r.interpretation ? `<p class="result-interpretation">${escapeHtml(r.interpretation)}</p>` : ''}
       ${(r.animal_self || r.animal_ai) ? `
         <div class="result-animal">
           <div class="result-animal-pair">
-            <span><strong>Já:</strong> ${escapeHtml(r.animal_self || '')}</span>
+            <span><strong>${escapeHtml(tl('result.selfPrefix'))}</strong> ${escapeHtml(r.animal_self || '')}</span>
             <span class="sep">×</span>
-            <span><strong>AI:</strong> ${escapeHtml(r.animal_ai || '')}</span>
+            <span><strong>${escapeHtml(tl('result.aiPrefix'))}</strong> ${escapeHtml(r.animal_ai || '')}</span>
           </div>
           ${r.animal_note ? `<div class="result-animal-note">${escapeHtml(r.animal_note)}</div>` : ''}
         </div>
       ` : ''}
-      <a class="btn btn-secondary result-cta" href="${dashUrl}">Podívej se, kde jsou ostatní →</a>
+      <a class="btn btn-secondary result-cta" href="${dashUrl}">${escapeHtml(tl('result.cta'))}</a>
     `;
     return el;
   }
@@ -625,6 +649,7 @@
     const cy = MARGIN + (1 - y / 100) * PLOT;
     const mid = MARGIN + PLOT / 2;
     const labelY = cy > SIZE - 70 ? cy - 18 : cy + 28;
+    const youLabel = name || tl('result.youLabel');
     return `
       <svg viewBox="0 0 ${SIZE} ${SIZE}" preserveAspectRatio="xMidYMid meet">
         <rect x="${MARGIN}" y="${MARGIN}" width="${PLOT/2}" height="${PLOT/2}" fill="#e0e7ff" opacity="0.45"/>
@@ -633,14 +658,29 @@
         <rect x="${mid}" y="${mid}" width="${PLOT/2}" height="${PLOT/2}" fill="#fef3c7" opacity="0.45"/>
         <line x1="${mid}" y1="${MARGIN}" x2="${mid}" y2="${SIZE - MARGIN}" stroke="#a3a3a3" stroke-width="1" stroke-dasharray="3 3"/>
         <line x1="${MARGIN}" y1="${mid}" x2="${SIZE - MARGIN}" y2="${mid}" stroke="#a3a3a3" stroke-width="1" stroke-dasharray="3 3"/>
-        <text x="${MARGIN + 6}" y="${MARGIN + 16}" font-size="11" fill="#525252">začátečník-nadšenec</text>
-        <text x="${SIZE - MARGIN - 6}" y="${MARGIN + 16}" font-size="11" fill="#525252" text-anchor="end">optim. power user</text>
-        <text x="${MARGIN + 6}" y="${SIZE - MARGIN - 8}" font-size="11" fill="#525252">začátečník-skeptik</text>
-        <text x="${SIZE - MARGIN - 6}" y="${SIZE - MARGIN - 8}" font-size="11" fill="#525252" text-anchor="end">real. power user</text>
+        <text x="${MARGIN + 6}" y="${MARGIN + 16}" font-size="11" fill="#525252">${escapeHtml(tl('minimap.tl'))}</text>
+        <text x="${SIZE - MARGIN - 6}" y="${MARGIN + 16}" font-size="11" fill="#525252" text-anchor="end">${escapeHtml(tl('minimap.tr'))}</text>
+        <text x="${MARGIN + 6}" y="${SIZE - MARGIN - 8}" font-size="11" fill="#525252">${escapeHtml(tl('minimap.bl'))}</text>
+        <text x="${SIZE - MARGIN - 6}" y="${SIZE - MARGIN - 8}" font-size="11" fill="#525252" text-anchor="end">${escapeHtml(tl('minimap.br'))}</text>
         <circle cx="${cx}" cy="${cy}" r="10" fill="#0d9488" stroke="white" stroke-width="2"/>
-        <text x="${cx}" y="${labelY}" font-size="14" font-weight="600" fill="#171717" text-anchor="middle">${escapeHtml(name || 'ty')}</text>
+        <text x="${cx}" y="${labelY}" font-size="14" font-weight="600" fill="#171717" text-anchor="middle">${escapeHtml(youLabel)}</text>
       </svg>
     `;
+  }
+
+  // ──────── footer (jazyková přepínací linka) ────────
+
+  function setupFooter() {
+    const footer = document.querySelector('.footer small');
+    if (!footer) return;
+    const otherLang = state.lang === 'en' ? 'cs' : 'en';
+    const otherUrl = new URL(window.location.href);
+    if (otherLang === 'en') {
+      otherUrl.searchParams.set('lang', 'en');
+    } else {
+      otherUrl.searchParams.delete('lang');
+    }
+    footer.innerHTML = `${escapeHtml(tl('footer.preparedBy'))} <a href="https://inspiruj.se" target="_blank" rel="noopener">Inspiruj.se</a> ${escapeHtml(tl('footer.suffix'))} · <a href="${otherUrl.pathname + otherUrl.search}">${escapeHtml(tl('footer.langToggle'))}</a>`;
   }
 
   // ──────── helpers ────────
@@ -657,6 +697,6 @@
 
   // ──────── boot ────────
 
-  document.addEventListener('DOMContentLoaded', render);
-  if (document.readyState !== 'loading') render();
+  document.addEventListener('DOMContentLoaded', () => { setupFooter(); render(); });
+  if (document.readyState !== 'loading') { setupFooter(); render(); }
 })();

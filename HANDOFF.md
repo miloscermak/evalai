@@ -1,8 +1,54 @@
 # EvalAI — Předávací zpráva
 
-**Aktualizace:** 2026-05-24
-**Předává:** Claude Code (session 2026-05-24) → další session
-**Stav:** v0.5 — 6+ ostrých workshopů proběhlo, **205 datapointů** v Sheetu (2026-04-27 → 2026-05-22). Workshop flow ověřen. Otevřená je kalibrace vah z reálných dat a sync `docs/design.md`.
+**Aktualizace:** 2026-05-24 (pozdější session, navazuje na předchozí stejného dne)
+**Předává:** Claude Code (session 2026-05-24 EN i18n) → další session
+**Stav:** v0.6 — **bilingva implementována.** Frontend, dashboard a backend prompt podporují `?lang=en`. Sheet schema beze změny. Čeká se na manuální redeploy Apps Script a smoke test obou jazykových verzí.
+
+## Změny v session 2026-05-24 (EN i18n)
+
+### Co je hotové (committed)
+
+- **Nový `src/i18n.js`** — jeden objekt `{ cs, en }` s ~170 klíči (meta, welcome, form, result, archetype, minimap, dashboard, export, sections, q1–q11 včetně všech options). Helper `window.t(key, lang, vars)` s fallbackem CS → EN → klíč. `window.evalaiGetLang()` čte `?lang=` z URL (whitelist cs|en, default cs).
+- **Refactor `src/questions.js`** — odstraněny textové labely, ponechána struktura (id, type, value kódy, weights, caps). Render skládá i18n klíče (`q1.opt.gt2y`).
+- **Refactor `src/app.js`** — `state.lang` propagován všude, mini-map labely a archetype názvy lokalizovány, `lang` v POST payloadu, dynamický `<html lang>` + `<title>`. Footer doplněn o přepínací odkaz `English version` / `Česká verze`.
+- **Refactor `src/dashboard.js` + `src/dashboard.html`** — legend, axis, kvadrantní labely, tooltip, export do MD/JSON jsou lokalizované. Plurál účastníků se větví (CZ má 3 formy, EN 2). `toLocaleString(locale)` bere lokálu z i18n klíče.
+- **Refactor `apps-script/webhook.gs`** — `processSubmission` extrahuje `lang` z payloadu, `buildFeedbackPrompt(lang, …)` má dvě paralelní verze (CZ/EN). Slovníky odpovědí (`ANSWER_LABELS.cs` / `.en`) lokalizované. Tool description také větvená. System prompt explicitně instruuje „Write entirely in English" / „Piš výhradně česky" — i když účastník napsal zvíře jinojazyčně.
+
+### Co se NEzměnilo
+
+- **Sheet schema** — žádný nový sloupec `lang`. Bylo to vědomé rozhodnutí (jednodušší deploy, ztrácí čistou filtraci CZ/EN, ale lze odvodit z workshop_id nebo z jazyka `interpretation`).
+- **Scoring** — `scoreX`, `scoreY`, `deriveQuadrant`, `backfillScores` beze změny.
+- **`src/start.html` / `src/start.js`** — admin zůstává CZ.
+- **`netlify.toml`** — žádné routing změny, `?lang=en` je jen query param.
+- **`src/style.css`** — bez českých stringů.
+
+### Co musí Milos udělat ručně po pull
+
+1. **Apps Script redeploy** (nutné, jinak EN dotazník dostane CZ odpovědi):
+   - script.google.com → projekt EvalAI → `webhook.gs`
+   - Cmd-A → vložit obsah z `apps-script/webhook.gs` → Cmd-S
+   - Deploy → Manage deployments → tužka → Version: New version → Deploy (URL zůstává)
+2. **Smoke test CZ** (regrese): otevřít `kdojsem.inspiruj.se`, projít celý dotazník česky → ověřit, že vše funguje stejně jako před změnou.
+3. **Smoke test EN**: otevřít `kdojsem.inspiruj.se/?lang=en` → projít, ověřit, že `interpretation` i `animal_note` v Sheetu jsou anglicky.
+4. **Dashboard EN**: `kdojsem.inspiruj.se/dashboard.html?lang=en&w=<wid>` → legenda, osy, kvadranty, export do MD anglicky.
+
+### Otevřené úkoly do další session
+
+- Smoke test po deployi (CZ regrese + EN end-to-end).
+- Pokud Claude občas sklouzne do CZ při `?lang=en`, posílit `You MUST write entirely in English.` v systém promptu (`webhook.gs`, `buildFeedbackPrompt`).
+- (Carry-over z předchozí session 2026-05-24): kalibrační analýza z 205 datapointů, cleanup šumu v Sheetu, sync `docs/design.md`.
+
+### Rollback
+
+- Tag `v0.5-pre-redesign` (commit `7ea4684`) je bezpečný bod **před** i18n refactorem.
+- `git checkout v0.5-pre-redesign` vrátí stav před touto session.
+
+---
+
+# Předchozí session
+
+**Aktualizace:** 2026-05-24 (ranní session)
+**Stav po session:** v0.5 — 6+ ostrých workshopů proběhlo, **205 datapointů** v Sheetu (2026-04-27 → 2026-05-22). Workshop flow ověřen. Otevřená je kalibrace vah z reálných dat a sync `docs/design.md`.
 
 ## Změny v session 2026-05-24
 

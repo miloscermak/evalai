@@ -6,12 +6,19 @@
  *
  * SVG viewBox je 0..1000 v obou osách. Točíme Y, protože v SVG roste
  * dolů (data Y=100 → svg y=margin, data Y=0 → svg y=1000-margin).
+ *
+ * Lang: ?lang=en přepne UI do angličtiny. Filtr workshopu (?w=…) je nezávislý.
  */
 
 (function () {
   'use strict';
 
   const config = window.EVALAI_CONFIG || {};
+  const lang = window.evalaiGetLang ? window.evalaiGetLang() : 'cs';
+  const tl = (key, vars) => window.t(key, lang, vars);
+
+  document.documentElement.lang = lang;
+  document.title = tl('dashboard.title');
 
   const PLOT_SIZE = 1000;
   const MARGIN = 80;
@@ -27,7 +34,25 @@
   const params = new URLSearchParams(window.location.search);
   const workshop = (params.get('w') || params.get('workshop') || '').trim();
 
-  workshopLabel.textContent = workshop ? '· ' + workshop : '· všichni';
+  workshopLabel.textContent = workshop ? '· ' + workshop : tl('dashboard.all');
+
+  // Lokalizace statických HTML prvků (legend, hlavička, tlačítka).
+  function localizeChrome() {
+    document.getElementById('dash-brand').textContent = tl('dashboard.brand');
+    document.getElementById('export-json-btn').title = tl('dashboard.exportJsonTitle');
+    document.getElementById('export-md-btn').title   = tl('dashboard.exportMdTitle');
+    document.getElementById('refresh-btn').title     = tl('dashboard.refreshTitle');
+    loadingEl.textContent = tl('dashboard.loading');
+
+    const legend = document.getElementById('quadrant-legend');
+    legend.innerHTML = `
+      <div class="ql-row"><span class="ql-q tl"></span> ${escapeHtml(tl('dashboard.legend.tl'))} <small>${escapeHtml(tl('dashboard.legend.tl.note'))}</small></div>
+      <div class="ql-row"><span class="ql-q tr"></span> ${escapeHtml(tl('dashboard.legend.tr'))} <small>${escapeHtml(tl('dashboard.legend.tr.note'))}</small></div>
+      <div class="ql-row"><span class="ql-q bl"></span> ${escapeHtml(tl('dashboard.legend.bl'))} <small>${escapeHtml(tl('dashboard.legend.bl.note'))}</small></div>
+      <div class="ql-row"><span class="ql-q br"></span> ${escapeHtml(tl('dashboard.legend.br'))} <small>${escapeHtml(tl('dashboard.legend.br.note'))}</small></div>
+    `;
+    document.getElementById('flag-note').textContent = tl('dashboard.flagNote');
+  }
 
   let lastData = [];
   let isLoading = false;
@@ -100,17 +125,17 @@
     html += `<line class="axis-line" x1="${left}" y1="${cy}" x2="${right}" y2="${cy}"/>`;
 
     // osy popisky
-    html += `<text class="axis-label" x="${right - 8}" y="${cy - 14}" text-anchor="end">zkušenost →</text>`;
-    html += `<text class="axis-label" x="${cx + 14}" y="${top + 18}" text-anchor="start">↑ optimismus</text>`;
-    html += `<text class="axis-label" x="${left + 8}" y="${cy - 14}" text-anchor="start">← zkušenost</text>`;
-    html += `<text class="axis-label" x="${cx + 14}" y="${bottom - 8}" text-anchor="start">pesimismus ↓</text>`;
+    html += `<text class="axis-label" x="${right - 8}" y="${cy - 14}" text-anchor="end">${escapeHtml(tl('dashboard.axis.right'))}</text>`;
+    html += `<text class="axis-label" x="${cx + 14}" y="${top + 18}" text-anchor="start">${escapeHtml(tl('dashboard.axis.up'))}</text>`;
+    html += `<text class="axis-label" x="${left + 8}" y="${cy - 14}" text-anchor="start">${escapeHtml(tl('dashboard.axis.left'))}</text>`;
+    html += `<text class="axis-label" x="${cx + 14}" y="${bottom - 8}" text-anchor="start">${escapeHtml(tl('dashboard.axis.down'))}</text>`;
 
     // labely kvadrantů (rohové, decentní)
     const labelOffset = 30;
-    html += `<text class="q-label" x="${left + labelOffset}" y="${top + labelOffset}">Začátečník-nadšenec</text>`;
-    html += `<text class="q-label" x="${right - labelOffset}" y="${top + labelOffset}" text-anchor="end">Optimistický power user</text>`;
-    html += `<text class="q-label" x="${left + labelOffset}" y="${bottom - labelOffset}">Začátečník-skeptik</text>`;
-    html += `<text class="q-label" x="${right - labelOffset}" y="${bottom - labelOffset}" text-anchor="end">Realistický power user</text>`;
+    html += `<text class="q-label" x="${left + labelOffset}" y="${top + labelOffset}">${escapeHtml(tl('dashboard.q.tl'))}</text>`;
+    html += `<text class="q-label" x="${right - labelOffset}" y="${top + labelOffset}" text-anchor="end">${escapeHtml(tl('dashboard.q.tr'))}</text>`;
+    html += `<text class="q-label" x="${left + labelOffset}" y="${bottom - labelOffset}">${escapeHtml(tl('dashboard.q.bl'))}</text>`;
+    html += `<text class="q-label" x="${right - labelOffset}" y="${bottom - labelOffset}" text-anchor="end">${escapeHtml(tl('dashboard.q.br'))}</text>`;
 
     svg.innerHTML = html;
   }
@@ -156,14 +181,16 @@
       tooltip.style.left = (screenX - svg.getBoundingClientRect().left) + 'px';
       tooltip.style.top  = (screenY - svg.getBoundingClientRect().top - 10) + 'px';
 
-      const arch = (point.archetype || '').replace(/_/g, ' ');
+      // Archetype label: lokalizovaný; fallback na raw kód, kdyby přišla neznámá hodnota.
+      const archCode = point.archetype || '';
+      const archLabel = archCode ? (tl('archetype.' + archCode) || archCode.replace(/_/g, ' ')) : '';
       tooltip.innerHTML = `
         <strong>${escapeHtml(point.name || '')}</strong>
-        ${arch ? `<div class="arch">${escapeHtml(arch)}</div>` : ''}
+        ${archLabel ? `<div class="arch">${escapeHtml(archLabel)}</div>` : ''}
         <div>X: ${Math.round(point.x)} · Y: ${Math.round(point.y)}</div>
-        ${point.animal_self ? `<div class="animal-line">já: ${escapeHtml(point.animal_self)}</div>` : ''}
-        ${point.animal_ai   ? `<div class="animal-line">AI: ${escapeHtml(point.animal_ai)}</div>` : ''}
-        ${point.outlier ? `<div style="margin-top:6px;color:#d97706;">⚑ zajímavý případ — animal posun</div>` : ''}
+        ${point.animal_self ? `<div class="animal-line">${escapeHtml(tl('result.selfPrefix'))} ${escapeHtml(point.animal_self)}</div>` : ''}
+        ${point.animal_ai   ? `<div class="animal-line">${escapeHtml(tl('result.aiPrefix'))} ${escapeHtml(point.animal_ai)}</div>` : ''}
+        ${point.outlier ? `<div style="margin-top:6px;color:#d97706;">${escapeHtml(tl('dashboard.outlierTooltip'))}</div>` : ''}
       `;
       tooltip.hidden = false;
     }
@@ -186,11 +213,11 @@
     try {
       const points = await fetchData();
       lastData = points;
-      countEl.textContent = points.length + ' ' + plural(points.length, 'účastník', 'účastníci', 'účastníků');
+      countEl.textContent = points.length + ' ' + plural(points.length);
       renderPoints(points);
     } catch (err) {
       console.error('[EvalAI dashboard] refresh error:', err);
-      errorEl.textContent = 'Chyba načtení: ' + (err.message || err);
+      errorEl.textContent = tl('dashboard.errorPrefix') + ' ' + (err.message || err);
       errorEl.hidden = false;
     } finally {
       isLoading = false;
@@ -198,10 +225,14 @@
     }
   }
 
-  function plural(n, one, few, many) {
-    if (n === 1) return one;
-    if (n >= 2 && n <= 4) return few;
-    return many;
+  // Plurál účastníků. CZ má tři formy (1 / 2-4 / 5+), EN dvě (1 / ostatní).
+  function plural(n) {
+    if (lang === 'cs') {
+      if (n === 1) return tl('dashboard.count.one');
+      if (n >= 2 && n <= 4) return tl('dashboard.count.few');
+      return tl('dashboard.count.many');
+    }
+    return n === 1 ? tl('dashboard.count.one') : tl('dashboard.count.many');
   }
 
   function escapeHtml(s) {
@@ -212,24 +243,16 @@
 
   // ──────── export (JSON / Markdown) ────────
 
-  const ARCHETYPE_LABELS = {
-    optimistic_power_user: 'Optimistický power user',
-    realistic_power_user:  'Realistický power user',
-    casual_enthusiast:     'Běžný uživatel-nadšenec',
-    casual_skeptic:        'Běžný uživatel-skeptik',
-    // legacy aliasy pro stará data
-    pragmatic_user:        'Pragmatický uživatel',
-    beginner_enthusiast:   'Běžný uživatel-nadšenec',
-    beginner_skeptic:      'Běžný uživatel-skeptik',
-    manager_proxy:         'Manažer (proxy uživatel)',
-    unclear:               'Smíšený typ',
-  };
+  function archetypeLabel(code) {
+    if (!code) return '';
+    return tl('archetype.' + code) || code;
+  }
 
   function quadrantOf(p) {
-    if (p.x >= 50 && p.y >= 50) return 'Optimistický power user';
-    if (p.x >= 50 && p.y <  50) return 'Realistický power user';
-    if (p.x <  50 && p.y >= 50) return 'Běžný uživatel-nadšenec';
-    return 'Běžný uživatel-skeptik';
+    if (p.x >= 50 && p.y >= 50) return tl('dashboard.q.tr');
+    if (p.x >= 50 && p.y <  50) return tl('dashboard.q.br');
+    if (p.x <  50 && p.y >= 50) return tl('dashboard.q.tl');
+    return tl('dashboard.q.bl');
   }
 
   function downloadFile(filename, content, mime) {
@@ -259,20 +282,21 @@
   function exportMd() {
     if (!lastData.length) return;
     const lines = [];
-    const slug = workshop || 'všechny workshopy';
-    lines.push(`# EvalAI — ${slug}`);
+    const slug = workshop || tl('export.allWorkshops');
+    const locale = tl('dashboard.locale');
+    lines.push(`${tl('export.titlePrefix')} ${slug}`);
     lines.push('');
-    lines.push(`Exportováno: ${new Date().toLocaleString('cs-CZ')}`);
-    lines.push(`Účastníků: **${lastData.length}**`);
+    lines.push(`${tl('export.exportedAt')} ${new Date().toLocaleString(locale)}`);
+    lines.push(`${tl('export.participantsCount')} **${lastData.length}**`);
     lines.push('');
 
     // rozložení podle archetypu (z odpovědí Claude)
     const byArch = {};
     lastData.forEach(p => {
-      const k = ARCHETYPE_LABELS[p.archetype] || p.archetype || '(bez archetypu)';
+      const k = archetypeLabel(p.archetype) || tl('export.noArchetype');
       byArch[k] = (byArch[k] || 0) + 1;
     });
-    lines.push('## Archetypy');
+    lines.push(tl('export.archetypesH2'));
     lines.push('');
     Object.keys(byArch).sort((a, b) => byArch[b] - byArch[a]).forEach(k => {
       lines.push(`- ${k}: **${byArch[k]}**`);
@@ -285,7 +309,7 @@
       const k = quadrantOf(p);
       byQ[k] = (byQ[k] || 0) + 1;
     });
-    lines.push('## Kvadranty');
+    lines.push(tl('export.quadrantsH2'));
     lines.push('');
     Object.keys(byQ).forEach(k => lines.push(`- ${k}: **${byQ[k]}**`));
     lines.push('');
@@ -293,7 +317,7 @@
     // outliers
     const outliers = lastData.filter(p => p.outlier);
     if (outliers.length) {
-      lines.push('## ⚑ Outlieři (animal posun ≥ 8)');
+      lines.push(tl('export.outliersH2'));
       lines.push('');
       outliers.forEach(p => {
         lines.push(`- **${p.name || '?'}** — ${p.animal_self || '?'} × ${p.animal_ai || '?'}`);
@@ -301,20 +325,20 @@
       lines.push('');
     }
 
-    lines.push('## Účastníci');
+    lines.push(tl('export.participantsH2'));
     lines.push('');
     lastData
       .slice()
       .sort((a, b) => (b.x + b.y) - (a.x + a.y))
       .forEach(p => {
-        const arch = ARCHETYPE_LABELS[p.archetype] || p.archetype || '';
-        lines.push(`### ${p.name || '(beze jména)'}${p.outlier ? ' ⚑' : ''}`);
+        const arch = archetypeLabel(p.archetype);
+        lines.push(`### ${p.name || tl('export.noName')}${p.outlier ? ' ⚑' : ''}`);
         lines.push('');
         if (arch) lines.push(`**${arch}** · X = ${Math.round(p.x)} · Y = ${Math.round(p.y)}`);
         else      lines.push(`X = ${Math.round(p.x)} · Y = ${Math.round(p.y)}`);
         lines.push('');
         if (p.animal_self || p.animal_ai) {
-          lines.push(`Já: *${p.animal_self || '?'}* × AI: *${p.animal_ai || '?'}*`);
+          lines.push(`${tl('result.selfPrefix')} *${p.animal_self || '?'}* × ${tl('result.aiPrefix')} *${p.animal_ai || '?'}*`);
           lines.push('');
         }
         if (p.interpretation) {
@@ -322,7 +346,7 @@
           lines.push('');
         }
         if (p.animal_note) {
-          lines.push(`_Animal note:_ ${p.animal_note}`);
+          lines.push(`_${tl('export.animalNoteLabel')}_ ${p.animal_note}`);
           lines.push('');
         }
       });
@@ -336,6 +360,8 @@
   }
 
   // ──────── boot ────────
+
+  localizeChrome();
 
   refreshBtn.addEventListener('click', refresh);
   document.getElementById('export-json-btn').addEventListener('click', exportJson);
