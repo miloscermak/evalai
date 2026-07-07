@@ -24,5 +24,9 @@ dist/
 # Local data (transcripts are referenční, ne git-tracked)
 data/transcripts/
 
+# Exporty dat z Sheetu — obsahují jména účastníků, NIKDY necommitovat
+*.csv
+*.xlsx
+
 # Claude Code worktrees / local cache
 .claude/
