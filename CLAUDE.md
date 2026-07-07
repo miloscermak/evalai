@@ -8,13 +8,14 @@ Use case: na začátku workshopu Milos zobrazí QR kód, účastníci vyplní te
 
 ## Aktuální stav
 
-Fáze: **v1.0-rc — v2 „firemní" dotazník implementován (2026-07-07), čeká na redeploy Apps Scriptu (NEJDŘÍV!) a push frontendu.** Souběh dvou verzí: **v2 hlavní** na `/` (16 otázek: A praxe / B postoj / C organizace + zvířata s chips + demografie s rolí) a **v1 zmrazená** na `/v1` (jarní dotazník, stará databáze `submissions`). v2 zapisuje do nového tabu `submissions_v2`, dashboard čte v2 default (`?v=1` pro jarní data). Návrh a scoring: `docs/design-v2.md`; předávací detaily a deploy checklist: `HANDOFF.md`.
+Fáze: **v1.0 — v2 „firemní" dotazník NASAZEN (2026-07-07): Apps Script redeploynut, frontend na produkci, end-to-end smoke test prošel (web → sheet `submissions_v2` → dashboard).** Souběh dvou verzí: **v2 hlavní** na `/` (16 otázek: A praxe / B postoj / C organizace + zvířata s chips + demografie s rolí) a **v1 zmrazená** na `/v1` (jarní dotazník, stará databáze `submissions`). v2 zapisuje do nového tabu `submissions_v2`, dashboard čte v2 default (`?v=1` pro jarní data). Návrh a scoring: `docs/design-v2.md`; předávací detaily a deploy checklist: `HANDOFF.md`.
 
 Klíčové v2 změny: X se počítá z **aktivit** (co člověk s AI dělá — use-casy A2 + techniky A3), ne z frekvence (jarní data: 67 % daily+ → frekvence už nerozlišuje). Y má vyrovnané váhy (jarní Y táhla jediná otázka, r=0.86). Sekce C (5E-lite dle Public First indexu) dává **Org Readiness Index** — agregát pro firemní report, do pozice jednotlivce nevstupuje; gate otázka c0 umí volnou nohu i přeskočení. Placený produkt: workshop + firemní report; assessment slouží i jako prodejní nástroj („změříme → doporučíme workshop").
 
 Jarní sběr (v0.5–0.6): **467 validních datapointů z 22 akcí** (2026-04-27 → 2026-06-16), slouží jako benchmark v1.
 
-- [ ] **Deploy v2:** 1) Apps Script redeploy + spustit `testSubmissionV2`, 2) `git push`, 3) smoke test `/`, `/v1`, `/start`, `/dashboard` (checklist v HANDOFF.md)
+- [x] **Deploy v2 (2026-07-07):** Apps Script redeploy + `testSubmissionV2` OK, push na Netlify, ostrý smoke test z webu OK (zápis do `submissions_v2` vč. diakritiky, dashboard ukazuje body)
+- [ ] Kosmetika: LLM občas přeteče 700 znaků u `interpretation` a slice usekne slovo — zpřísnit instrukci délky v promptu
 - [ ] Generátor firemního reportu (AI Readiness + 5E + benchmark + doporučení) — struktura v `docs/design-v2.md`
 - [ ] Benchmark z jarních dat (přemapování Q3/Q4/Q5/Q7/Q8 → v2, percentily podle oborů)
 - [ ] Git historie: `evalai260524.csv` se jmény účastníků odstraněn z HEAD, ale zůstává v historii veřejného repa → `git filter-repo` + force push (čeká na Milošovo rozhodnutí)
