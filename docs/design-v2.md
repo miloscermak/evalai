@@ -102,24 +102,46 @@ Vyrovnané váhy, žádná položka nesmí mít >35 % rozsahu.
 Inspirace Public First: Enablement, Empowerment, Education, Embedding
 (+ Enthusiasm už měří osa Y — do org indexu vstoupí agregát Y týmu).
 
-**C1 Enablement:** „Dává ti zaměstnavatel AI nástroje, které potřebuješ?"
-- ano, placené a dostačující / jen základní či omezené / ne, používám vlastní / ne a AI v práci nepoužívám
+Primární cílovka je firma, ale sekce nesmí vyřadit lidi na volné noze —
+proto úvodní otázka C0, která větví znění a umožňuje sekci přeskočit
+(feedback Miloše 2026-07-07).
 
-**C2 Shadow AI:** „Používáš v práci i soukromé AI účty (vlastní ChatGPT apod.)?"
+**C0 — kontext práce (gate, single):**
+„Jak aktuálně pracuješ?"
+- jsem zaměstnanec ve firmě nebo instituci *(employee)*
+- pracuji na volné noze / podnikám *(freelance)*
+- nepracuji / nechci tuhle sekci vyplňovat *(none → C1–C5 se přeskočí)*
+
+**C1 Enablement (single):**
+- zaměstnanec: „Dává ti zaměstnavatel k práci AI nástroje, které potřebuješ?"
+- volná noha: „Máš pro svou práci AI nástroje, které potřebuješ?"
+- ano, placené a dostačující / jen základní nebo omezené / ne, používám vlastní / AI k práci nepoužívám
+
+**C2 Shadow AI (single):** „Používáš k pracovním úkolům i své soukromé AI účty?"
 - pravidelně / občas / ne
 *(→ samostatná metrika do reportu — pro management často nejsilnější číslo)*
 
-**C3 Empowerment:** „Je ti jasné, co v práci s AI smíš a co ne?" 1–5
+**C3 Empowerment (likert tvrzení):** „Je mi jasné, co při práci s AI smím a co ne."
 
-**C4 Education:** „Dostal(a) jsi od zaměstnavatele k AI školení nebo podporu?"
-- ano, opakovaně / jednorázově / ne, ale zvládám to sám(a) / ne a chybí mi to
+**C4 Podpora/Education (likert tvrzení):**
+- zaměstnanec: „Mám od svého zaměstnavatele k používání AI dostatečnou podporu (školení, návody, pomoc)."
+- volná noha: „Mám k používání AI dostatečnou podporu (kurzy, komunita, zdroje)."
 
-**C5 Embedding:** „AI je běžnou součástí pracovních postupů v mém týmu." 1–5
+**C5 Embedding (likert tvrzení):**
+- zaměstnanec: „Zvažování, kde by nám AI mohla pomoct, je běžnou součástí naší práce (porady, plánování, nové postupy)."
+- volná noha: „Zvažování, kde by mi AI mohla pomoct, je běžnou součástí mé práce."
 
-**Org Readiness Index** = průměr normalizovaných (0–1) položek C1–C5 + průměr
-Y týmu jako Enthusiasm → ×100. Bez vah (Public First přístup). Reportovat jen
-při n≥8 respondentů z firmy. Pro veřejný `online` mód sekci C zobrazit taky
-(jen s neutrálním úvodem „pokud pracuješ…" + Skip), data se hodí do benchmarku.
+**Likertova škála (sdílená pro C3–C5):**
+souhlasím / spíše souhlasím / nevím / spíše nesouhlasím / nesouhlasím / nechci odpovědět
+
+**Org Readiness Index** = průměr normalizovaných (0–1) položek C1–C5:
+- C1: placené 1 / základní 0.5 / vlastní 0.25 / nepoužívám 0
+- C2: ne 1 / občas 0.5 / pravidelně 0 (preference firemních nástrojů = zralost podmínek)
+- C3–C5: souhlasím 1 / spíše 0.75 / nevím 0.5 / spíše ne 0.25 / ne 0; „nechci odpovědět" se vynechá
+Bez vah (Public First přístup), ×100. Ukládá se per-respondent (`org_index`),
+firemní agregát = průměr zaměstnanců (filtr `work_context = employee`).
+Reportovat při n≥8 respondentů z firmy. Volnonožci mají vlastní org_index
+(zralost vlastní praxe) — do firemního agregátu nevstupují.
 
 ## Sekce D — Zvířata (chips + text)
 
@@ -159,6 +181,25 @@ Generuje Claude z dat workshopu/assessmentu, formát 1× A4 + příloha:
 2. Report ukáže mezery → doporučení konkrétního workshopu
 3. Workshop se živou mapou (dnešní wow moment zůstává)
 4. (Později) re-test po 3 měsících → report o posunu → opakovaný byznys
+
+## Souběh v1 a v2 (rozhodnutí 2026-07-07)
+
+Obě verze běží současně a obě zůstávají plně funkční:
+
+| | v2 (nová, hlavní) | v1 (stará) |
+|---|---|---|
+| URL | `kdojsem.inspiruj.se/` | `kdojsem.inspiruj.se/v1` |
+| Otázky | `src/questions.js` | `src/questions-v1.js` (zmrazená kopie) |
+| Data | sheet `submissions_v2` | sheet `submissions` (beze změny) |
+| Dashboard | `dashboard.html?w=…` (default v2) | `dashboard.html?v=1&w=…` |
+| Scoring | scoreX2/scoreY2/orgIndex | scoreX/scoreY (beze změny) |
+
+Jeden webhook obslouží obě verze — routuje podle `payload.formVersion`.
+Na /start si Milos volí, kterou verzi dotazníku QR kód odkáže.
+
+**Pořadí nasazení (důležité):** nejdřív redeploy Apps Scriptu (je zpětně
+kompatibilní, v1 provoz nenaruší), teprve potom push frontendu. Obráceně by
+v2 submissiony padaly do v1 scoringu.
 
 ## Datová kontinuita
 

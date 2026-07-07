@@ -1,32 +1,31 @@
-/* EvalAI — struktura otázek (bez textů)
+/* EvalAI — struktura otázek VERZE 2 (podzim 2026, firemní)
  *
- * Textové labely (title, subtitle, options.label, leftLabel/rightLabel,
- * field labels demografie) jsou v src/i18n.js. Render v app.js skládá
- * klíče podle id otázky a value odpovědi, např. t('q1.opt.gt2y').
+ * Textové labely jsou v src/i18n.js. Render v app.js skládá klíče podle
+ * id otázky a value odpovědi, např. t('a1.opt.daily'). Pro likertová
+ * tvrzení se používá sdílený prefix (optKeyPrefix: 'likert').
  *
- * Tento soubor je language-agnostic. Změna struktury (přidání otázky,
- * value kódů, vah) MUSÍ jít ruku v ruce s úpravou:
- *   - i18n.js (přidat CZ + EN texty)
- *   - apps-script/webhook.gs (scoring váhy + LLM label slovníky)
+ * Nové vlastnosti oproti v1 (podporuje je app.js):
+ *   - showIf:    { q: 'c0', notIn: ['none'] } — otázka se přeskočí,
+ *                pokud odpověď na c0 je v seznamu notIn (nebo není v "in")
+ *   - variantOn: { q: 'c0', value: 'freelance', suffix: 'Freelance' } —
+ *                titulek se vezme z klíče '<id>.title<suffix>'
+ *   - optKeyPrefix: sdílené labely možností (likertova škála)
+ *   - chips na q10: rychlé štítky "proč" k oběma zvířatům
+ *
+ * Stará verze dotazníku je zmrazená v src/questions-v1.js (stránka /v1).
+ * Změna struktury MUSÍ jít ruku v ruce s úpravou:
+ *   - i18n.js (CZ + EN texty)
+ *   - apps-script/webhook.gs (scoring v2 + LLM label slovníky)
  */
 
+window.EVALAI_FORM_VERSION = '2';
+
 window.EVALAI_QUESTIONS = [
+  // ──────── A — praxe s AI (osa X) ────────
   {
-    id: 'q1',
+    id: 'a1',
     sectionKey: 'sections.experience',
     n: 1,
-    type: 'single',
-    options: [
-      { value: 'never' },
-      { value: 'lt6m' },
-      { value: '6m_2y' },
-      { value: 'gt2y' },
-    ],
-  },
-  {
-    id: 'q2',
-    sectionKey: 'sections.experience',
-    n: 2,
     type: 'single',
     options: [
       { value: 'never' },
@@ -37,39 +36,25 @@ window.EVALAI_QUESTIONS = [
     ],
   },
   {
-    id: 'q3',
+    id: 'a2',
     sectionKey: 'sections.experience',
-    n: 3,
+    n: 2,
     type: 'multi',
     options: [
-      { value: 'chatgpt' },
-      { value: 'claude' },
-      { value: 'gemini' },
-      { value: 'copilot' },
-      { value: 'other' },
-      { value: 'perplexity' },
-      { value: 'notebooklm' },
-      { value: 'image' },
-      { value: 'audio' },
-      { value: 'video' },
+      { value: 'writing' },
+      { value: 'summary' },
+      { value: 'research' },
+      { value: 'data' },
+      { value: 'coding' },
+      { value: 'media' },
+      { value: 'brainstorm' },
       { value: 'none', exclusive: true },
     ],
   },
   {
-    id: 'q4',
+    id: 'a3',
     sectionKey: 'sections.experience',
-    n: 4,
-    type: 'single',
-    options: [
-      { value: 'no' },
-      { value: 'one' },
-      { value: 'multi' },
-    ],
-  },
-  {
-    id: 'q5',
-    sectionKey: 'sections.experience',
-    n: 5,
+    n: 3,
     type: 'multi',
     options: [
       { value: 'long_prompt' },
@@ -81,7 +66,39 @@ window.EVALAI_QUESTIONS = [
     ],
   },
   {
-    id: 'q6',
+    id: 'a4',
+    sectionKey: 'sections.experience',
+    n: 4,
+    type: 'single',
+    options: [
+      { value: 'no' },
+      { value: 'one' },
+      { value: 'multi' },
+    ],
+  },
+  {
+    id: 'a5',
+    sectionKey: 'sections.experience',
+    n: 5,
+    type: 'multi',
+    options: [
+      { value: 'chatgpt' },
+      { value: 'claude' },
+      { value: 'gemini' },
+      { value: 'copilot' },
+      { value: 'perplexity' },
+      { value: 'notebooklm' },
+      { value: 'image' },
+      { value: 'audio' },
+      { value: 'video' },
+      { value: 'other' },
+      { value: 'none', exclusive: true },
+    ],
+  },
+
+  // ──────── B — postoj (osa Y) ────────
+  {
+    id: 'b1',
     sectionKey: 'sections.attitude',
     n: 6,
     type: 'scale',
@@ -89,7 +106,7 @@ window.EVALAI_QUESTIONS = [
     max: 5,
   },
   {
-    id: 'q7',
+    id: 'b2',
     sectionKey: 'sections.attitude',
     n: 7,
     type: 'scale',
@@ -97,9 +114,17 @@ window.EVALAI_QUESTIONS = [
     max: 5,
   },
   {
-    id: 'q8',
+    id: 'b3',
     sectionKey: 'sections.attitude',
     n: 8,
+    type: 'scale',
+    min: 1,
+    max: 5,
+  },
+  {
+    id: 'b4',
+    sectionKey: 'sections.attitude',
+    n: 9,
     type: 'multi',
     maxSelections: 3,
     options: [
@@ -114,18 +139,101 @@ window.EVALAI_QUESTIONS = [
       { value: 'none', exclusive: true },
     ],
   },
+
+  // ──────── C — organizace (5E-lite, firemní index) ────────
   {
-    id: 'q9',
-    sectionKey: 'sections.attitude',
-    n: 9,
-    type: 'scale',
-    min: 1,
-    max: 5,
+    id: 'c0',
+    sectionKey: 'sections.org',
+    n: 10,
+    type: 'single',
+    options: [
+      { value: 'employee' },
+      { value: 'freelance' },
+      { value: 'none' },
+    ],
   },
+  {
+    id: 'c1',
+    sectionKey: 'sections.org',
+    n: 11,
+    type: 'single',
+    showIf: { q: 'c0', notIn: ['none'] },
+    variantOn: { q: 'c0', value: 'freelance', suffix: 'Freelance' },
+    options: [
+      { value: 'provided_paid' },
+      { value: 'provided_basic' },
+      { value: 'own_tools' },
+      { value: 'no_ai' },
+    ],
+  },
+  {
+    id: 'c2',
+    sectionKey: 'sections.org',
+    n: 12,
+    type: 'single',
+    showIf: { q: 'c0', notIn: ['none'] },
+    options: [
+      { value: 'regularly' },
+      { value: 'sometimes' },
+      { value: 'no' },
+    ],
+  },
+  {
+    id: 'c3',
+    sectionKey: 'sections.org',
+    n: 13,
+    type: 'single',
+    optKeyPrefix: 'likert',
+    showIf: { q: 'c0', notIn: ['none'] },
+    options: [
+      { value: 'agree' },
+      { value: 'rather_agree' },
+      { value: 'dk' },
+      { value: 'rather_disagree' },
+      { value: 'disagree' },
+      { value: 'na' },
+    ],
+  },
+  {
+    id: 'c4',
+    sectionKey: 'sections.org',
+    n: 14,
+    type: 'single',
+    optKeyPrefix: 'likert',
+    showIf: { q: 'c0', notIn: ['none'] },
+    variantOn: { q: 'c0', value: 'freelance', suffix: 'Freelance' },
+    options: [
+      { value: 'agree' },
+      { value: 'rather_agree' },
+      { value: 'dk' },
+      { value: 'rather_disagree' },
+      { value: 'disagree' },
+      { value: 'na' },
+    ],
+  },
+  {
+    id: 'c5',
+    sectionKey: 'sections.org',
+    n: 15,
+    type: 'single',
+    optKeyPrefix: 'likert',
+    showIf: { q: 'c0', notIn: ['none'] },
+    variantOn: { q: 'c0', value: 'freelance', suffix: 'Freelance' },
+    options: [
+      { value: 'agree' },
+      { value: 'rather_agree' },
+      { value: 'dk' },
+      { value: 'rather_disagree' },
+      { value: 'disagree' },
+      { value: 'na' },
+    ],
+  },
+
+  // ──────── D — zvířata (měkká vrstva) ────────
   {
     id: 'q10',
     sectionKey: 'sections.metaphor',
-    n: 10,
+    n: 16,
     type: 'animal',
     fields: [
       { key: 'animalSelf', labelKey: 'q10.animalSelf.label',                                        maxLength: 30 },
@@ -133,11 +241,19 @@ window.EVALAI_QUESTIONS = [
       { key: 'animalAi',   labelKey: 'q10.animalAi.label',                                          maxLength: 30 },
       { key: 'reasonAi',   labelKey: 'q10.reason.label', placeholderKey: 'q10.reason.placeholder', maxLength: 200, multiline: true, optional: true },
     ],
+    // rychlé štítky "proč" — max 3, nepovinné, jen měkká vrstva (do skóre nevstupují)
+    chips: {
+      self: ['curious', 'cautious', 'playful', 'persistent', 'fast', 'loyal', 'independent', 'predator'],
+      ai:   ['smart', 'fast', 'useful', 'unpredictable', 'everywhere', 'alien', 'dangerous', 'friendly'],
+    },
+    maxChips: 3,
   },
+
+  // ──────── demografie (nepovinná) ────────
   {
     id: 'q11',
     sectionKey: 'sections.about',
-    n: 11,
+    n: 17,
     type: 'demographics',
     fields: [
       {
@@ -179,6 +295,19 @@ window.EVALAI_QUESTIONS = [
           { value: 'business' },
           { value: 'student' },
           { value: 'retired' },
+          { value: 'other' },
+          { value: 'na' },
+        ],
+      },
+      {
+        // role ve firmě — nová ve v2, klíčová pro firemní report
+        // (srovnání vedení × specialisté)
+        key: 'role',
+        labelKey: 'q11.role.label',
+        options: [
+          { value: 'lead' },
+          { value: 'manager' },
+          { value: 'specialist' },
           { value: 'other' },
           { value: 'na' },
         ],

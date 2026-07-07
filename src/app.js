@@ -17,6 +17,15 @@
   const config    = window.EVALAI_CONFIG    || {};
   const questions = window.EVALAI_QUESTIONS || [];
 
+  // '1' = zmrazený jarní dotazník (v1.html), '2' = firemní verze (index.html).
+  // Nastavuje questions*.js — app.js je pro obě verze sdílený.
+  const FORM_VERSION = window.EVALAI_FORM_VERSION || '1';
+
+  // nejvyšší číslo bodované otázky pro label "otázka {n} z {total}"
+  // (demografie se nečísluje)
+  const totalNumbered = questions.reduce(
+    (m, q) => q.type === 'demographics' ? m : Math.max(m, q.n || 0), 0);
+
   const container = document.getElementById('screen-container');
   const progressBar = document.getElementById('progress-bar');
 
@@ -37,8 +46,16 @@
     result: null,                   // odpověď z webhooku po submitu (score, archetype, interpretation…)
   };
 
-  // shorthand: lokalizovaný překlad ve state.lang
-  function tl(key, vars) { return window.t(key, state.lang, vars); }
+  // shorthand: lokalizovaný překlad ve state.lang.
+  // Ve v2 zkusí napřed klíč '<key>.v2' — tak se dají přepsat sdílené texty
+  // (welcome, footer…) bez rozbití v1.
+  function tl(key, vars) {
+    if (FORM_VERSION === '2') {
+      const v2 = window.t(key + '.v2', state.lang, vars);
+      if (v2 !== key + '.v2') return v2;
+    }
+    return window.t(key, state.lang, vars);
+  }
 
   // Nastav <html lang> a <title> podle aktuálního jazyka (a11y + SEO).
   document.documentElement.lang = state.lang;
@@ -55,18 +72,31 @@
 
   const totalScreens = questions.length + 2; // welcome + N questions + thanks
 
+  // Podmíněné otázky (v2 sekce C): showIf: { q: 'c0', notIn: ['none'] }.
+  // Skrytá otázka se při navigaci přeskakuje oběma směry.
+  function isVisible(q) {
+    if (!q.showIf) return true;
+    const v = state.answers[q.showIf.q];
+    if (q.showIf.notIn) return !q.showIf.notIn.includes(v);
+    if (q.showIf.in)    return q.showIf.in.includes(v);
+    return true;
+  }
+
   function next() {
-    if (state.currentIndex < totalScreens - 1) {
-      state.currentIndex++;
+    let i = state.currentIndex + 1;
+    while (i < totalScreens - 1 && !isVisible(questions[i - 1])) i++;
+    if (i <= totalScreens - 1) {
+      state.currentIndex = i;
       render();
     }
   }
 
   function back() {
-    if (state.currentIndex > 0 && !state.submitted) {
-      state.currentIndex--;
-      render();
-    }
+    if (state.currentIndex <= 0 || state.submitted) return;
+    let i = state.currentIndex - 1;
+    while (i > 0 && !isVisible(questions[i - 1])) i--;
+    state.currentIndex = i;
+    render();
   }
 
   function updateProgress() {
@@ -191,12 +221,17 @@
     const section = tl(q.sectionKey);
     const sectionLabel = isDemographics
       ? `${section} · ${tl('form.sectionDemoSuffix')}`
-      : `${section} · ${tl('form.sectionQNofTotal', { n: q.n })}`;
+      : `${section} · ${tl('form.sectionQNofTotal', { n: q.n, total: totalNumbered })}`;
     const primaryLabel = isLast
       ? (state.submitting ? tl('form.submitting') : tl('form.continueResult'))
       : tl('form.continue');
 
-    const title    = tl(q.id + '.title');
+    // Varianta znění podle dřívější odpovědi (v2: volná noha vs. zaměstnanec)
+    let titleKey = q.id + '.title';
+    if (q.variantOn && state.answers[q.variantOn.q] === q.variantOn.value) {
+      titleKey = q.id + '.title' + q.variantOn.suffix;
+    }
+    const title    = tl(titleKey);
     const subtitle = tl(q.id + '.subtitle');
     const hasSubtitle = subtitle !== (q.id + '.subtitle'); // klíč existuje, není to fallback na klíč
 
@@ -245,7 +280,8 @@
       const selected = isMulti
         ? selectedSet.has(opt.value)
         : current === opt.value;
-      const label = tl(q.id + '.opt.' + opt.value);
+      // likertova tvrzení sdílejí labely přes optKeyPrefix ('likert.opt.agree')
+      const label = tl((q.optKeyPrefix || q.id) + '.opt.' + opt.value);
       return `
         <button class="option ${selected ? 'selected' : ''}"
                 data-type="${q.type}"
@@ -311,15 +347,34 @@
       `;
     };
 
+    // Chips (jen v2): rychlé "proč" štítky. Ukládají se do q10.chipsSelf /
+    // q10.chipsAi — měkká vrstva, do skóre nevstupují, jen sytí animal_note.
+    const renderChips = (groupKey, values) => {
+      if (!values || !values.length) return '';
+      const selected = new Set(current[groupKey] || []);
+      const chips = values.map(v => `
+        <button class="chip ${selected.has(v) ? 'selected' : ''}" type="button"
+                data-chip-group="${groupKey}" data-chip="${escapeAttr(v)}">
+          ${escapeHtml(tl('q10.chip.' + v))}
+        </button>
+      `).join('');
+      return `
+        <div class="chip-hint">${escapeHtml(tl('q10.chips.hint'))}</div>
+        <div class="chip-row">${chips}</div>
+      `;
+    };
+
     return `
       <div class="animal-pair">
         <div class="animal-pair-title">${escapeHtml(tl('animal.selfTitle'))}</div>
         ${renderField(q.fields[0])}
+        ${q.chips ? renderChips('chipsSelf', q.chips.self) : ''}
         ${renderField(q.fields[1])}
       </div>
       <div class="animal-pair">
         <div class="animal-pair-title">${escapeHtml(tl('animal.aiTitle'))}</div>
         ${renderField(q.fields[2])}
+        ${q.chips ? renderChips('chipsAi', q.chips.ai) : ''}
         ${renderField(q.fields[3])}
       </div>
     `;
@@ -380,6 +435,22 @@
       el.querySelectorAll('[data-key]').forEach(input => {
         input.addEventListener('input', e => {
           obj[input.dataset.key] = e.target.value;
+        });
+      });
+      // chips: toggle bez re-renderu, aby rozepsané texty nepřišly o fokus
+      el.querySelectorAll('.chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const group = btn.dataset.chipGroup;
+          const val = btn.dataset.chip;
+          const set = new Set(obj[group] || []);
+          if (set.has(val)) {
+            set.delete(val);
+          } else {
+            if (q.maxChips && set.size >= q.maxChips) return;
+            set.add(val);
+          }
+          obj[group] = Array.from(set);
+          btn.classList.toggle('selected', set.has(val));
         });
       });
     } else if (q.type === 'demographics') {
@@ -500,8 +571,15 @@
     state.computing = true;
     state.submitError = null;
 
+    // Odpovědi na otázky, které jsou teď skryté (uživatel se vrátil a změnil
+    // c0), do payloadu nepatří.
+    questions.forEach(q => {
+      if (!isVisible(q) && state.answers[q.id] !== undefined) delete state.answers[q.id];
+    });
+
     const payload = {
       version: config.version || '0.1.0',
+      formVersion: FORM_VERSION,
       lang: state.lang,
       workshopId: state.workshop || 'unknown',
       name: state.name,

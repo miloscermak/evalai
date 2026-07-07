@@ -13,7 +13,11 @@
 
   const config = window.EVALAI_CONFIG || {};
   const STORAGE_KEY = 'evalai.lastWorkshop';
+  const VERSION_KEY = 'evalai.lastVersion';
   const POLL_MS = 5000;
+
+  // '2' = nový firemní dotazník (index.html), '1' = zmrazená jarní verze (/v1)
+  let formVersion = '2';
 
   // DOM
   const setupView    = document.getElementById('setup-view');
@@ -67,12 +71,20 @@
       return;
     }
 
+    const checked = document.querySelector('input[name="form-version"]:checked');
+    if (checked) formVersion = checked.value;
+
     localStorage.setItem(STORAGE_KEY, workshopId);
+    localStorage.setItem(VERSION_KEY, formVersion);
 
-    const formLink = `${location.origin}/?w=${encodeURIComponent(workshopId)}`;
-    const dashLink = `${location.origin}/dashboard?w=${encodeURIComponent(workshopId)}`;
+    const formLink = formVersion === '1'
+      ? `${location.origin}/v1?w=${encodeURIComponent(workshopId)}`
+      : `${location.origin}/?w=${encodeURIComponent(workshopId)}`;
+    const dashLink = formVersion === '1'
+      ? `${location.origin}/dashboard?v=1&w=${encodeURIComponent(workshopId)}`
+      : `${location.origin}/dashboard?w=${encodeURIComponent(workshopId)}`;
 
-    widDisplay.textContent = workshopId;
+    widDisplay.textContent = workshopId + (formVersion === '1' ? ' · v1' : '');
     formUrl.value = formLink;
     dashboardLink.href = dashLink;
 
@@ -89,6 +101,7 @@
     setupView.hidden = false;
     stopPolling();
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(VERSION_KEY);
     widInput.value = '';
     widInput.focus();
   }
@@ -132,6 +145,7 @@
     try {
       const url = new URL(config.dashboardJsonUrl);
       url.searchParams.set('w', workshopId);
+      if (formVersion === '2') url.searchParams.set('v', '2');
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
@@ -171,6 +185,11 @@
   // Pokud je v localStorage poslední workshop, rovnou pokračujeme
   const last = localStorage.getItem(STORAGE_KEY);
   if (last) {
+    const lastVersion = localStorage.getItem(VERSION_KEY);
+    if (lastVersion === '1') {
+      const radio = document.querySelector('input[name="form-version"][value="1"]');
+      if (radio) radio.checked = true;
+    }
     start(last);
   } else {
     // přednabídnout dnešní datum

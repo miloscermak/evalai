@@ -419,6 +419,46 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
   margin-bottom: 12px;
 }
 
+/* chips — rychlé "proč" štítky u zvířat (v2) */
+
+.chip-hint {
+  font-size: 13px;
+  color: var(--text-subtle);
+  margin: 4px 0 8px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.chip {
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.chip:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.chip.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
 /* ──────── nav buttons ──────── */
 
 .nav {

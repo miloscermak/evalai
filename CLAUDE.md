@@ -8,8 +8,16 @@ Use case: na začátku workshopu Milos zobrazí QR kód, účastníci vyplní te
 
 ## Aktuální stav
 
-Fáze: **v0.6 — bilingva (CZ + EN) implementována.** Dotazník a dashboard podporují `?lang=en`, Claude píše feedback v jazyce účastníka. Předchozí v0.5 (proběhlo 6+ ostrých workshopů, ~205 datapointů 2026-04-27 → 2026-05-22) zůstává v platnosti — data v Sheetu se nemění.
+Fáze: **v1.0-rc — v2 „firemní" dotazník implementován (2026-07-07), čeká na redeploy Apps Scriptu (NEJDŘÍV!) a push frontendu.** Souběh dvou verzí: **v2 hlavní** na `/` (16 otázek: A praxe / B postoj / C organizace + zvířata s chips + demografie s rolí) a **v1 zmrazená** na `/v1` (jarní dotazník, stará databáze `submissions`). v2 zapisuje do nového tabu `submissions_v2`, dashboard čte v2 default (`?v=1` pro jarní data). Návrh a scoring: `docs/design-v2.md`; předávací detaily a deploy checklist: `HANDOFF.md`.
 
+Klíčové v2 změny: X se počítá z **aktivit** (co člověk s AI dělá — use-casy A2 + techniky A3), ne z frekvence (jarní data: 67 % daily+ → frekvence už nerozlišuje). Y má vyrovnané váhy (jarní Y táhla jediná otázka, r=0.86). Sekce C (5E-lite dle Public First indexu) dává **Org Readiness Index** — agregát pro firemní report, do pozice jednotlivce nevstupuje; gate otázka c0 umí volnou nohu i přeskočení. Placený produkt: workshop + firemní report; assessment slouží i jako prodejní nástroj („změříme → doporučíme workshop").
+
+Jarní sběr (v0.5–0.6): **467 validních datapointů z 22 akcí** (2026-04-27 → 2026-06-16), slouží jako benchmark v1.
+
+- [ ] **Deploy v2:** 1) Apps Script redeploy + spustit `testSubmissionV2`, 2) `git push`, 3) smoke test `/`, `/v1`, `/start`, `/dashboard` (checklist v HANDOFF.md)
+- [ ] Generátor firemního reportu (AI Readiness + 5E + benchmark + doporučení) — struktura v `docs/design-v2.md`
+- [ ] Benchmark z jarních dat (přemapování Q3/Q4/Q5/Q7/Q8 → v2, percentily podle oborů)
+- [ ] Git historie: `evalai260524.csv` se jmény účastníků odstraněn z HEAD, ale zůstává v historii veřejného repa → `git filter-repo` + force push (čeká na Milošovo rozhodnutí)
 - [x] Frontend dotazníku (10 otázek + Q11 nepovinná demografie + auto-advance + result screen)
 - [x] Apps Script backend (zápis do Google Sheets + Claude tools API)
 - [x] Hard scoring (Q1–Q9) deterministický, animal vrstva nezasahuje do X/Y
@@ -45,22 +53,26 @@ evalai/
 ├── README.md
 ├── netlify.toml
 ├── docs/
-│   └── design.md      # design dokument (částečně out-of-sync, viz „Aktuální stav")
+│   ├── design.md      # design dokument v1 (částečně out-of-sync)
+│   └── design-v2.md   # návrh v2 (podzim 2026) — otázky, scoring, org index, report
 ├── src/               # frontend
-│   ├── index.html     # dotazník
-│   ├── app.js         # state machine, render, submit
-│   ├── questions.js   # definice 10 otázek + q11 demografie
+│   ├── index.html     # dotazník v2 (hlavní)
+│   ├── v1.html        # zmrazený dotazník v1 (jarní), URL /v1
+│   ├── app.js         # state machine, render, submit — SDÍLENÝ pro v1 i v2
+│   ├── questions.js   # definice otázek v2 (A/B/C + q10 chips + q11 s rolí)
+│   ├── questions-v1.js # zmrazená struktura v1 — NEUPRAVOVAT
 │   ├── style.css
-│   ├── dashboard.html # live scatter plot
+│   ├── dashboard.html # live scatter plot (default v2 data, ?v=1 jarní)
 │   ├── dashboard.js
 │   ├── dashboard.css
-│   ├── start.html     # admin /start page
+│   ├── start.html     # admin /start page (volba verze dotazníku)
 │   ├── start.js
 │   ├── start.css
 │   └── config.js      # webhook URL + dashboard JSON URL
 ├── apps-script/
 │   └── webhook.gs     # zdrojový kód, ručně se kopíruje do Apps Script editoru
-└── scoring-test.mjs   # lokální sanity check scoring formulí
+├── scoring-test.mjs    # sanity check v1 scoring formulí
+└── scoring-test-v2.mjs # kalibrační kotvy v2 (X2/Y2/org index)
 ```
 
 ---
@@ -74,6 +86,7 @@ evalai/
 
 ### Deploy
 - **Frontend:** push do `main` → Netlify auto-deploy.
+- **Pořadí při změně obou vrstev:** vždy nejdřív Apps Script, pak push frontendu (webhook je zpětně kompatibilní; obráceně by frontend posílal payloady, kterým starý webhook nerozumí).
 - **Apps Script:** **manuální redeploy** vždy, když se mění `webhook.gs`. Postup:
   1. script.google.com → projekt EvalAI → soubor `webhook.gs`
   2. Cmd-A → vložit obsah z `apps-script/webhook.gs` → Cmd-S

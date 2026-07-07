@@ -35,7 +35,7 @@
 
       // form / nav
       'form.sectionDemoSuffix': 'nepovinné',
-      'form.sectionQNofTotal': 'otázka {n} z 10',
+      'form.sectionQNofTotal': 'otázka {n} z {total}',
       'form.continue': 'Pokračovat',
       'form.continueResult': 'Pokračovat k výsledku',
       'form.submitting': 'Odesílám…',
@@ -235,6 +235,143 @@
       'q11.gender.opt.male':   'Muž',
       'q11.gender.opt.other':  'Jiné',
       'q11.gender.opt.na':     'Nechci uvést',
+
+      // ═══ v2 (podzim 2026) ═══
+
+      // v2 overrides sdílených klíčů (app.js zkouší '<klíč>.v2' napřed)
+      'meta.description.v2': 'Dotazník Inspiruj.se: čtyři minuty, mapa tvého vztahu k AI — a jak je na tom s AI tvoje firma.',
+      'footer.suffix.v2': '· anonymní · ~4 minuty',
+      'welcome.intro1.v2': 'Inspiruj.se od dubna 2023 pořádá workshopy o generativní AI. Vyvinuli jsme metodiku, jak zmapovat, jaký typ AI uživatele jsi — a nově i to, jaké podmínky ti pro AI vytváří tvoje firma. Dej nám čtyři minuty a dozvíš se obojí.',
+
+      'sections.org': 'Práce a AI',
+
+      // A — praxe
+      'a1.title': 'Jak často AI nástroje reálně používáš?',
+      'a1.opt.never':   'Vůbec / jen výjimečně',
+      'a1.opt.monthly': 'Párkrát za měsíc',
+      'a1.opt.weekly':  'Párkrát týdně',
+      'a1.opt.daily':   'Denně',
+      'a1.opt.always':  'Mnohokrát denně, je součástí mé práce',
+
+      'a2.title': 'Co s AI opravdu děláš?',
+      'a2.subtitle': 'Označ všechno, co jsi s AI dělal/a v posledním měsíci.',
+      'a2.opt.writing':    'Psaní a úprava textů',
+      'a2.opt.summary':    'Shrnutí dokumentů, schůzek nebo dlouhých materiálů',
+      'a2.opt.research':   'Rešerše a vyhledávání informací',
+      'a2.opt.data':       'Analýza dat nebo tabulek',
+      'a2.opt.coding':     'Programování / skripty',
+      'a2.opt.media':      'Tvorba obrázků, audia nebo videa',
+      'a2.opt.brainstorm': 'Brainstorming, rozhodování, druhý názor',
+      'a2.opt.none':       'Nic z toho',
+
+      'a3.title': 'Které z těchto pokročilejších věcí děláš?',
+      'a3.subtitle': 'Můžeš zaškrtnout více možností.',
+      'a3.opt.long_prompt': 'Píšu prompty, často komplexní a promyšlené',
+      'a3.opt.chatbot_max': 'Používám chatbot na maximum (projekty, deep research, plánované úkoly)',
+      'a3.opt.vibecoding':  'Píšu vlastní aplikace (vibecoding)',
+      'a3.opt.automation':  'Vytvářím automatizace s využitím různých nástrojů',
+      'a3.opt.agent':       'Buduju asistenta nebo agenta, na kterého deleguju úkoly',
+      'a3.opt.none':        'Nic z toho',
+
+      'a4.title': 'Platíš za některou AI službu?',
+      'a4.opt.no':    'Ne',
+      'a4.opt.one':   'Ano, jeden placený nástroj',
+      'a4.opt.multi': 'Ano, dva a více',
+
+      'a5.title': 'Které AI nástroje jsi za poslední měsíc reálně použil/a?',
+      'a5.subtitle': 'Můžeš zaškrtnout více možností.',
+      'a5.opt.chatgpt':    'ChatGPT',
+      'a5.opt.claude':     'Claude',
+      'a5.opt.gemini':     'Gemini',
+      'a5.opt.copilot':    'Microsoft Copilot',
+      'a5.opt.perplexity': 'Perplexity',
+      'a5.opt.notebooklm': 'NotebookLM',
+      'a5.opt.image':      'MidJourney / DALL-E / Sora / Veo',
+      'a5.opt.audio':      'ElevenLabs / Suno',
+      'a5.opt.video':      'HeyGen / Synthesia',
+      'a5.opt.other':      'Jiný AI nástroj',
+      'a5.opt.none':       'Žádný',
+
+      // B — postoj
+      'b1.title': 'AI během příštích pěti let změní svět i můj život k lepšímu.',
+      'b2.title': 'Z tempa, jakým se AI vyvíjí, mám spíš radost než obavy.',
+      'b3.title': 'Společnosti jako celku AI spíš pomůže, než ublíží.',
+
+      'b4.title': 'Co tě na AI nejvíc znervózňuje?',
+      'b4.subtitle': 'Vyber max. 3 možnosti — nebo „Nic z toho".',
+      'b4.opt.hallucinations': 'Halucinace / nepravdivé odpovědi',
+      'b4.opt.jobs':           'Ztráta pracovních míst',
+      'b4.opt.authenticity':   'Ztráta autenticity a vlastního myšlení',
+      'b4.opt.dependency':     'Závislost na AI',
+      'b4.opt.ethics':         'Etika a soukromí dat',
+      'b4.opt.safety':         'Bezpečnost a zneužití',
+      'b4.opt.unknown':        'Strach z neznámého — „nevím, co to je"',
+      'b4.opt.ecology':        'Ekologická zátěž',
+      'b4.opt.none':           'Nic z toho — nemám výrazné obavy',
+
+      // C — organizace
+      'c0.title': 'Jak aktuálně pracuješ?',
+      'c0.subtitle': 'Následujících pár otázek se týká AI ve tvé práci. Pokud pracuješ na volné noze, vztáhni je ke svému podnikání.',
+      'c0.opt.employee':  'Jsem zaměstnanec ve firmě nebo instituci',
+      'c0.opt.freelance': 'Pracuju na volné noze / podnikám',
+      'c0.opt.none':      'Nepracuju / nechci tuhle část vyplňovat',
+
+      'c1.title': 'Dává ti zaměstnavatel k práci AI nástroje, které potřebuješ?',
+      'c1.titleFreelance': 'Máš pro svou práci AI nástroje, které potřebuješ?',
+      'c1.opt.provided_paid':  'Ano — mám placené a dostačující',
+      'c1.opt.provided_basic': 'Mám jen základní / omezené',
+      'c1.opt.own_tools':      'Firemní nemám, používám vlastní',
+      'c1.opt.no_ai':          'AI k práci nepoužívám',
+
+      'c2.title': 'Používáš k pracovním úkolům i své soukromé AI účty?',
+      'c2.subtitle': 'Třeba vlastní ChatGPT na pracovní dokumenty.',
+      'c2.opt.regularly': 'Pravidelně',
+      'c2.opt.sometimes': 'Občas',
+      'c2.opt.no':        'Ne',
+
+      'c3.title': 'Je mi jasné, co při práci s AI smím a co ne.',
+      'c4.title': 'Mám od svého zaměstnavatele k používání AI dostatečnou podporu (školení, návody, pomoc).',
+      'c4.titleFreelance': 'Mám k používání AI dostatečnou podporu — kurzy, komunita, zdroje, ke kterým se dostanu.',
+      'c5.title': 'Zvažování, kde by nám AI mohla pomoct, je běžnou součástí naší práce (porady, plánování, nové postupy).',
+      'c5.titleFreelance': 'Zvažování, kde by mi AI mohla pomoct, je běžnou součástí mé práce.',
+
+      // likertova škála (sdílená pro c3–c5)
+      'likert.opt.agree':           'Souhlasím',
+      'likert.opt.rather_agree':    'Spíše souhlasím',
+      'likert.opt.dk':              'Nevím',
+      'likert.opt.rather_disagree': 'Spíše nesouhlasím',
+      'likert.opt.disagree':        'Nesouhlasím',
+      'likert.opt.na':              'Nechci odpovědět',
+
+      // chips u zvířat (q10)
+      'q10.chips.hint': 'Proč? Ťukni na štítky (max 3) — nebo napiš vlastní důvod.',
+      'q10.chip.curious':       'zvědavé',
+      'q10.chip.cautious':      'opatrné',
+      'q10.chip.playful':       'hravé',
+      'q10.chip.persistent':    'vytrvalé',
+      'q10.chip.fast':          'rychlé',
+      'q10.chip.loyal':         'věrné',
+      'q10.chip.independent':   'nezávislé',
+      'q10.chip.predator':      'dravé',
+      'q10.chip.smart':         'chytré',
+      'q10.chip.useful':        'užitečné',
+      'q10.chip.unpredictable': 'nevyzpytatelné',
+      'q10.chip.everywhere':    'všudypřítomné',
+      'q10.chip.alien':         'cizí a tajemné',
+      'q10.chip.dangerous':     'nebezpečné',
+      'q10.chip.friendly':      'přátelské',
+
+      // dashboard v2
+      'dashboard.orgIndex': 'AI Readiness',
+      'dashboard.orgIndexTitle': 'Index podmínek pro AI (0–100) — průměr {n} zaměstnanců (nástroje, pravidla, podpora, integrace)',
+
+      // q11 role (nové ve v2)
+      'q11.role.label': 'Role ve firmě',
+      'q11.role.opt.lead':       'Vedení firmy / instituce',
+      'q11.role.opt.manager':    'Vedu tým',
+      'q11.role.opt.specialist': 'Specialista / výkonná role',
+      'q11.role.opt.other':      'Jiné',
+      'q11.role.opt.na':         'Nechci uvést',
     },
 
     // ──────── EN ────────
@@ -258,7 +395,7 @@
       'welcome.start': 'Start',
 
       'form.sectionDemoSuffix': 'optional',
-      'form.sectionQNofTotal': 'question {n} of 10',
+      'form.sectionQNofTotal': 'question {n} of {total}',
       'form.continue': 'Continue',
       'form.continueResult': 'See my result',
       'form.submitting': 'Submitting…',
@@ -449,6 +586,142 @@
       'q11.gender.opt.male':   'Male',
       'q11.gender.opt.other':  'Other',
       'q11.gender.opt.na':     'Prefer not to say',
+
+      // ═══ v2 (autumn 2026) ═══
+
+      'meta.description.v2': 'Inspiruj.se quiz: four minutes, a map of your relationship with AI — and how your company is doing with AI.',
+      'footer.suffix.v2': '· anonymous · ~4 minutes',
+      'welcome.intro1.v2': 'Since April 2023, Inspiruj.se has been running workshops on generative AI. We developed a method for mapping what kind of AI user you are — and, new this season, what conditions your company creates for AI. Give us four minutes and you\'ll learn both.',
+
+      'sections.org': 'Work & AI',
+
+      // A — practice
+      'a1.title': 'How often do you actually use AI tools?',
+      'a1.opt.never':   'Not at all / only rarely',
+      'a1.opt.monthly': 'A few times a month',
+      'a1.opt.weekly':  'A few times a week',
+      'a1.opt.daily':   'Daily',
+      'a1.opt.always':  'Many times a day, it\'s part of my work',
+
+      'a2.title': 'What do you actually do with AI?',
+      'a2.subtitle': 'Select everything you\'ve done with AI in the past month.',
+      'a2.opt.writing':    'Writing and editing text',
+      'a2.opt.summary':    'Summarising documents, meetings or long materials',
+      'a2.opt.research':   'Research and finding information',
+      'a2.opt.data':       'Analysing data or spreadsheets',
+      'a2.opt.coding':     'Programming / scripts',
+      'a2.opt.media':      'Creating images, audio or video',
+      'a2.opt.brainstorm': 'Brainstorming, decisions, a second opinion',
+      'a2.opt.none':       'None of the above',
+
+      'a3.title': 'Which of these more advanced things do you do?',
+      'a3.subtitle': 'Select all that apply.',
+      'a3.opt.long_prompt': 'I write prompts — often complex and deliberate',
+      'a3.opt.chatbot_max': 'I push chatbots to the max (projects, deep research, scheduled tasks)',
+      'a3.opt.vibecoding':  'I build my own apps (vibecoding)',
+      'a3.opt.automation':  'I build automations across multiple tools',
+      'a3.opt.agent':       'I build an assistant or agent I can delegate tasks to',
+      'a3.opt.none':        'None of the above',
+
+      'a4.title': 'Do you pay for any AI service?',
+      'a4.opt.no':    'No',
+      'a4.opt.one':   'Yes, one paid tool',
+      'a4.opt.multi': 'Yes, two or more',
+
+      'a5.title': 'Which AI tools have you actually used in the past month?',
+      'a5.subtitle': 'Select all that apply.',
+      'a5.opt.chatgpt':    'ChatGPT',
+      'a5.opt.claude':     'Claude',
+      'a5.opt.gemini':     'Gemini',
+      'a5.opt.copilot':    'Microsoft Copilot',
+      'a5.opt.perplexity': 'Perplexity',
+      'a5.opt.notebooklm': 'NotebookLM',
+      'a5.opt.image':      'MidJourney / DALL-E / Sora / Veo',
+      'a5.opt.audio':      'ElevenLabs / Suno',
+      'a5.opt.video':      'HeyGen / Synthesia',
+      'a5.opt.other':      'Another AI tool',
+      'a5.opt.none':       'None',
+
+      // B — attitude
+      'b1.title': 'Over the next five years, AI will change the world — and my life — for the better.',
+      'b2.title': 'The pace at which AI is developing brings me more joy than worry.',
+      'b3.title': 'On the whole, AI will help society more than harm it.',
+
+      'b4.title': 'What makes you most uneasy about AI?',
+      'b4.subtitle': 'Pick up to 3 — or "None of the above".',
+      'b4.opt.hallucinations': 'Hallucinations / false answers',
+      'b4.opt.jobs':           'Job loss',
+      'b4.opt.authenticity':   'Loss of authenticity and original thinking',
+      'b4.opt.dependency':     'Dependence on AI',
+      'b4.opt.ethics':         'Ethics and data privacy',
+      'b4.opt.safety':         'Safety and misuse',
+      'b4.opt.unknown':        'Fear of the unknown — "I don\'t know what it is"',
+      'b4.opt.ecology':        'Environmental footprint',
+      'b4.opt.none':           'None of the above — no major concerns',
+
+      // C — organisation
+      'c0.title': 'How do you currently work?',
+      'c0.subtitle': 'The next few questions are about AI at your work. If you\'re self-employed, relate them to your own business.',
+      'c0.opt.employee':  'I\'m an employee at a company or institution',
+      'c0.opt.freelance': 'I\'m self-employed / run a business',
+      'c0.opt.none':      'I\'m not working / I\'d rather skip this part',
+
+      'c1.title': 'Does your employer give you the AI tools you need for work?',
+      'c1.titleFreelance': 'Do you have the AI tools you need for your work?',
+      'c1.opt.provided_paid':  'Yes — paid and sufficient',
+      'c1.opt.provided_basic': 'Only basic / limited ones',
+      'c1.opt.own_tools':      'No company tools, I use my own',
+      'c1.opt.no_ai':          'I don\'t use AI for work',
+
+      'c2.title': 'Do you also use your private AI accounts for work tasks?',
+      'c2.subtitle': 'E.g. your personal ChatGPT on work documents.',
+      'c2.opt.regularly': 'Regularly',
+      'c2.opt.sometimes': 'Sometimes',
+      'c2.opt.no':        'No',
+
+      'c3.title': 'It\'s clear to me what I may and may not do with AI at work.',
+      'c4.title': 'My employer gives me enough support for using AI (training, guides, someone to ask).',
+      'c4.titleFreelance': 'I have enough support for using AI — courses, community, resources I can reach.',
+      'c5.title': 'Considering where AI could help us is a normal part of our work (meetings, planning, new processes).',
+      'c5.titleFreelance': 'Considering where AI could help me is a normal part of my work.',
+
+      // likert scale (shared for c3–c5)
+      'likert.opt.agree':           'Agree',
+      'likert.opt.rather_agree':    'Somewhat agree',
+      'likert.opt.dk':              'Not sure',
+      'likert.opt.rather_disagree': 'Somewhat disagree',
+      'likert.opt.disagree':        'Disagree',
+      'likert.opt.na':              'Prefer not to answer',
+
+      // animal chips (q10)
+      'q10.chips.hint': 'Why? Tap the tags (max 3) — or write your own reason.',
+      'q10.chip.curious':       'curious',
+      'q10.chip.cautious':      'cautious',
+      'q10.chip.playful':       'playful',
+      'q10.chip.persistent':    'persistent',
+      'q10.chip.fast':          'fast',
+      'q10.chip.loyal':         'loyal',
+      'q10.chip.independent':   'independent',
+      'q10.chip.predator':      'a predator',
+      'q10.chip.smart':         'smart',
+      'q10.chip.useful':        'useful',
+      'q10.chip.unpredictable': 'unpredictable',
+      'q10.chip.everywhere':    'everywhere',
+      'q10.chip.alien':         'alien and mysterious',
+      'q10.chip.dangerous':     'dangerous',
+      'q10.chip.friendly':      'friendly',
+
+      // dashboard v2
+      'dashboard.orgIndex': 'AI Readiness',
+      'dashboard.orgIndexTitle': 'Conditions-for-AI index (0–100) — average of {n} employees (tools, rules, support, integration)',
+
+      // q11 role (new in v2)
+      'q11.role.label': 'Role at your company',
+      'q11.role.opt.lead':       'Company / institution leadership',
+      'q11.role.opt.manager':    'I lead a team',
+      'q11.role.opt.specialist': 'Specialist / hands-on role',
+      'q11.role.opt.other':      'Other',
+      'q11.role.opt.na':         'Prefer not to say',
     },
   };
 

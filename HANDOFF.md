@@ -1,7 +1,72 @@
 # EvalAI — Předávací zpráva
 
-**Aktualizace:** 2026-05-24 (pozdější session, navazuje na předchozí stejného dne)
-**Předává:** Claude Code (session 2026-05-24 EN i18n) → další session
+**Aktualizace:** 2026-07-07
+**Předává:** Claude Code (session 2026-07-07 — analýza jarních dat + v2 firemní dotazník) → další session
+**Stav:** v1.0-rc — **v2 dotazník implementován, čeká na redeploy Apps Scriptu a push.** Souběh v1 (zmrazená, `/v1`) + v2 (hlavní, `/`). Detailní návrh a zdůvodnění: `docs/design-v2.md`.
+
+## Změny v session 2026-07-07 (analýza dat + v2)
+
+### Analýza jarních dat (467 validních odpovědí, 22 akcí)
+
+- Frekvence saturovaná (67 % daily+, 85 % >6 měsíců) → X přestavěn na aktivity.
+- Y komprimované (sd 16), Q7 dominovala (r=0.86) → vyrovnané váhy, nové B2/B3.
+- Zvířecí důvody vyplněny jen z 33 % → tap-chips.
+- Chyběla organizační vrstva → sekce C (5E-lite dle Public First) + Org Readiness Index.
+
+### Co je hotové (committed, NEnasazené)
+
+- **`src/questions.js`** = v2 (A1–A5 praxe, B1–B4 postoj, C0–C5 organizace s gate
+  otázkou a freelance variantami, q10 s chips, q11 + role). Stará struktura
+  zmrazena v **`src/questions-v1.js`**, stránka **`src/v1.html`**.
+- **`src/app.js`** — sdílený pro obě verze: `showIf` (podmíněné otázky),
+  `variantOn` (variantní znění), `optKeyPrefix` (likert), chips s max 3,
+  `.v2` i18n overridy, `formVersion` v payloadu, dynamický počet otázek.
+- **`src/i18n.js`** — ~150 nových klíčů CZ+EN pro v2.
+- **`apps-script/webhook.gs`** — routing podle `payload.formVersion`; v2:
+  `scoreX2` (35 šíře + 30 hloubka + 15 frekvence + 10 placené + 10 nástroje),
+  `scoreY2` (B1 ±15, B2 ±15, B3 ±10, obavy −3), `orgIndexV2` (průměr C1–C5),
+  nový tab `submissions_v2` (vytvoří se sám), `buildFeedbackPromptV2` (CZ/EN,
+  vč. chips a org kontextu), `testSubmissionV2`. doGet: `?v=2` čte v2 tab.
+- **`src/dashboard.js/.html/.css`** — `?v=1` pro jarní data (default v2),
+  badge AI Readiness (průměr org_index zaměstnanců, od n≥3).
+- **`src/start.html/.js`** — volba verze dotazníku (v2 default), QR/dashboard
+  linky a counter respektují verzi.
+- **`netlify.toml`** — redirect `/v1`.
+- **`scoring-test-v2.mjs`** — 12 kalibračních kotev, všechny prochází.
+- **Smoke test v prohlížeči prošel:** CZ i EN, freelance varianty, skip sekce C
+  (c0=none → c1–c5 vypadnou z payloadu), chips max 3, v1 regrese OK.
+- **Bezpečnost:** `evalai260524.csv` (jména účastníků!) odstraněn z gitu,
+  `*.csv`/`*.xlsx` v .gitignore. POZOR: soubor zůstává v git historii na
+  GitHubu — úplné odstranění vyžaduje `git filter-repo` + force push (čeká
+  na Milošovo rozhodnutí).
+
+### Co musí Milos udělat ručně (V TOMTO POŘADÍ!)
+
+1. **Apps Script redeploy NEJDŘÍV** (nový webhook.gs je zpětně kompatibilní,
+   v1 provoz nenaruší): script.google.com → vložit `apps-script/webhook.gs`
+   → Deploy → Manage deployments → New version. URL se nemění.
+2. V Apps Script editoru spustit **`testSubmissionV2`** → ověřit, že se vytvořil
+   tab `submissions_v2` a řádek má skóre + interpretaci.
+3. **Pak teprve `git push`** (Netlify nasadí frontend v2).
+4. Smoke test: `kdojsem.inspiruj.se` (v2 CZ), `/?lang=en`, `/v1` (stará verze),
+   `/dashboard?w=<test>` (v2 data), `/start` (volba verze).
+5. Smazat testovací řádky z `submissions_v2`.
+
+### Otevřené úkoly do další session
+
+- **Generátor firemního reportu** (deliverable pro firmy): AI Readiness Index
+  + 5E rozpad + mapa + benchmark + shadow AI % + doporučení. Návrh struktury
+  v `docs/design-v2.md`.
+- Benchmark z jarních dat: přemapovat Q3/Q4/Q5/Q7/Q8 → v2 ekvivalenty,
+  spočítat percentily podle oborů.
+- Po prvních ostrých v2 akcích: kalibrace X2/Y2 na reálných datech.
+- Rozhodnout git historii (filter-repo kvůli CSV se jmény).
+- Carry-over: sync `docs/design.md` (v1 dokumentace).
+
+---
+
+# Předchozí stav (2026-05-24)
+
 **Stav:** v0.6 — **bilingva implementována.** Frontend, dashboard a backend prompt podporují `?lang=en`. Sheet schema beze změny. Čeká se na manuální redeploy Apps Script a smoke test obou jazykových verzí.
 
 ## Změny v session 2026-05-24 (EN i18n)

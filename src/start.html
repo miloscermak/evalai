@@ -24,6 +24,12 @@
       <input id="wid-input" class="field-input" type="text" placeholder="cez-2026-04-27" autocomplete="off" autocapitalize="none" spellcheck="false">
       <small class="hint">Krátké, bez mezer a diakritiky. Třeba zkratka klienta + datum.</small>
 
+      <label class="field-label" style="margin-top:16px;">Verze dotazníku</label>
+      <div class="version-toggle">
+        <label><input type="radio" name="form-version" value="2" checked> v2 — firemní (od podzimu 2026)</label>
+        <label><input type="radio" name="form-version" value="1"> v1 — jarní (zmrazená, stará databáze)</label>
+      </div>
+
       <button id="start-btn" class="btn btn-primary">Spustit session</button>
     </section>
 

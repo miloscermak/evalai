@@ -34,7 +34,12 @@
   const params = new URLSearchParams(window.location.search);
   const workshop = (params.get('w') || params.get('workshop') || '').trim();
 
-  workshopLabel.textContent = workshop ? '· ' + workshop : tl('dashboard.all');
+  // Verze datasetu: default v2 (podzim 2026). Jarní data: ?v=1.
+  const dataVersion = params.get('v') === '1' ? '1' : '2';
+  const orgIndexEl = document.getElementById('org-index');
+
+  workshopLabel.textContent = (workshop ? '· ' + workshop : tl('dashboard.all'))
+    + (dataVersion === '1' ? ' · v1' : '');
 
   // Lokalizace statických HTML prvků (legend, hlavička, tlačítka).
   function localizeChrome() {
@@ -78,6 +83,7 @@
 
     const url = new URL(config.dashboardJsonUrl);
     if (workshop) url.searchParams.set('w', workshop);
+    if (dataVersion === '2') url.searchParams.set('v', '2');
 
     const res = await fetch(url.toString());
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -225,6 +231,7 @@
       const points = await fetchData();
       lastData = points;
       countEl.textContent = points.length + ' ' + plural(points.length);
+      renderOrgIndex(points);
       renderPoints(points);
     } catch (err) {
       console.error('[EvalAI dashboard] refresh error:', err);
@@ -234,6 +241,24 @@
       isLoading = false;
       loadingEl.hidden = true;
     }
+  }
+
+  // Org AI Readiness Index (jen v2): průměr org_index zaměstnanců.
+  // Ukazuje se od 3 respondentů — pod to je číslo příliš osobní i nestabilní.
+  function renderOrgIndex(points) {
+    if (dataVersion !== '2' || !orgIndexEl) return;
+    const vals = points
+      .filter(p => p.work_context === 'employee' && p.org_index !== '' && p.org_index !== null && p.org_index !== undefined)
+      .map(p => Number(p.org_index))
+      .filter(n => !isNaN(n));
+    if (vals.length < 3) {
+      orgIndexEl.hidden = true;
+      return;
+    }
+    const avg = Math.round(vals.reduce((s, n) => s + n, 0) / vals.length);
+    orgIndexEl.textContent = tl('dashboard.orgIndex') + ': ' + avg;
+    orgIndexEl.title = tl('dashboard.orgIndexTitle', { n: vals.length });
+    orgIndexEl.hidden = false;
   }
 
   // Plurál účastníků. CZ má tři formy (1 / 2-4 / 5+), EN dvě (1 / ostatní).
