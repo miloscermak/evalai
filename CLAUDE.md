@@ -8,7 +8,7 @@ Use case: na začátku workshopu Milos zobrazí QR kód, účastníci vyplní te
 
 ## Aktuální stav
 
-Fáze: **v1.1 — refresh obsahu v2 (2026-08-26), čeká na redeploy Apps Scriptu.** Přibyla otázka A6 (delegace celých úkolů) jako nejsilnější diskriminátor 2026, X převáženo (30 šíře / 25 hloubka / 20 delegace / 12 frekvence / 8 placené / 5 nástroje), B4 vyřazena z osy Y, B1 rozpojena od B3. Detaily v `docs/design-v2.md`, rollback: git tag `v2.0-pre-refresh`.
+Fáze: **v1.1 — refresh obsahu v2 NASAZEN (2026-08-26): Apps Script redeploynut, frontend na produkci, ostrý smoke test prošel end-to-end.** Přibyla otázka A6 (delegace celých úkolů) jako nejsilnější diskriminátor 2026, X převáženo (30 šíře / 25 hloubka / 20 delegace / 12 frekvence / 8 placené / 5 nástroje), B4 vyřazena z osy Y, B1 rozpojena od B3. Detaily v `docs/design-v2.md`, rollback: git tag `v2.0-pre-refresh`.
 
 Předchozí fáze: **v1.0 — v2 „firemní" dotazník NASAZEN (2026-07-07): Apps Script redeploynut, frontend na produkci, end-to-end smoke test prošel (web → sheet `submissions_v2` → dashboard).** Souběh dvou verzí: **v2 hlavní** na `/` (16 otázek: A praxe / B postoj / C organizace + zvířata s chips + demografie s rolí) a **v1 zmrazená** na `/v1` (jarní dotazník, stará databáze `submissions`). v2 zapisuje do nového tabu `submissions_v2`, dashboard čte v2 default (`?v=1` pro jarní data). Návrh a scoring: `docs/design-v2.md`; předávací detaily a deploy checklist: `HANDOFF.md`.
 
@@ -16,10 +16,10 @@ Klíčové v2 změny: X se počítá z **aktivit** (co člověk s AI dělá — 
 
 Jarní sběr (v0.5–0.6): **467 validních datapointů z 22 akcí** (2026-04-27 → 2026-06-16), slouží jako benchmark v1.
 
-- [ ] **Redeploy Apps Scriptu po refreshi 2026-08-26** — bez něj webhook nezná `a6`, `a4=employer`, `a2=translate`, `a3=custom_assistant`, `a5=coding_agent` a spočítá je jako nulu. Frontend pushnout až PO redeployi.
+- [x] **Deploy refreshe (2026-08-26):** Apps Script redeploynut Milošem, push na Netlify, ostrý smoke test z webu OK — X/Y/kvadrant/org index sedí s lokálním výpočtem (44/67/casual_enthusiast/50), LLM v textu cituje nové odpovědi (coding agenti, delegace, vlastní data), diakritika v pořádku.
 - [x] **Refresh obsahu (2026-08-26):** A6 delegace, A2 +překlady, A3 +vlastní data, A4 +firemní licence, A5 −HeyGen +coding agenti +Grok pod „jiný chatbot", B1 nové znění, B4 mimo scoring. Kotvy v `scoring-test-v2.mjs` sedí, end-to-end průchod CZ i EN prošel.
 - [x] **Deploy v2 (2026-07-07):** Apps Script redeploy + `testSubmissionV2` OK, push na Netlify, ostrý smoke test z webu OK (zápis do `submissions_v2` vč. diakritiky, dashboard ukazuje body)
-- [ ] Kosmetika: LLM občas přeteče 700 znaků u `interpretation` a slice usekne slovo — zpřísnit instrukci délky v promptu
+- [ ] Kosmetika: LLM občas přeteče 700 znaků u `interpretation` a slice usekne slovo — zpřísnit instrukci délky v promptu. **Potvrzeno znovu při smoke testu 2026-08-26** (oba testovací řádky useknuté uprostřed slova), takže to zítřejší účastníky potká taky.
 - [ ] Generátor firemního reportu (AI Readiness + 5E + benchmark + doporučení) — struktura v `docs/design-v2.md`
 - [ ] Benchmark z jarních dat (přemapování Q3/Q4/Q5/Q7/Q8 → v2, percentily podle oborů)
 - [ ] Git historie: `evalai260524.csv` se jmény účastníků odstraněn z HEAD, ale zůstává v historii veřejného repa → `git filter-repo` + force push (čeká na Milošovo rozhodnutí)
@@ -35,7 +35,7 @@ Jarní sběr (v0.5–0.6): **467 validních datapointů z 22 akcí** (2026-04-27
 - [x] **Ostré workshopy proběhly:** cak (59), hluboka (30), salesforce (15), bioptic (14), vse (12), bratislava (12), workshop284 (4) + online (45). Demografie vyplněna v 98 %.
 - [ ] Kalibrace vah z reálných dat (prahy kvadrantů, váhy Q5/Q6/Q7, X_max) — data jsou, čeká se na analýzu. Prvotní pohled: X avg 49.6, Y avg 51.0 → střed mapy sedí, rebalance X-osy z 2026-05-13 funguje. Kvadranty zhruba vyrovnané (62/57/47/40).
 - [ ] Aktualizace `docs/design.md` — z poslední session (Q3/Q5/Q6/Q7/Q9 nová znění + odstraněné LLM modifikátory) je out-of-sync; ground truth je `src/questions.js` + `apps-script/webhook.gs`
-- [ ] Drobný cleanup v Sheetu: 1× `?w=cak` (řetězec se vplazil do workshop_id), 5× `unknown`, několik `test*` řádků — pro analýzu filtrovat ven.
+- [ ] Cleanup v Sheetu: v `submissions_v2` jsou **2 smoke-test řádky** z 2026-08-26 s `workshop_id = test-refresh-2026-08-26` (jméno `SmokeTest`) — pro analýzu odfiltrovat. V `submissions`: 1× `?w=cak` (řetězec se vplazil do workshop_id), 5× `unknown`, několik `test*` řádků — pro analýzu filtrovat ven.
 
 ---
 
