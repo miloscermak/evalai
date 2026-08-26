@@ -417,8 +417,8 @@ function callClaudeFeedback(prompt, lang) {
     input_schema: {
       type: 'object',
       properties: {
-        interpretation: { type: 'string', maxLength: 700 },
-        animal_note:    { type: 'string', maxLength: 700 },
+        interpretation: { type: 'string', maxLength: 600 },
+        animal_note:    { type: 'string', maxLength: 600 },
       },
       required: ['interpretation', 'animal_note'],
     },
@@ -455,9 +455,35 @@ function callClaudeFeedback(prompt, lang) {
   }
 
   return {
-    interpretation: String(toolUse.input.interpretation || '').slice(0, 700),
-    animal_note:    String(toolUse.input.animal_note    || '').slice(0, 700),
+    interpretation: trimToSentence(toolUse.input.interpretation, 700),
+    animal_note:    trimToSentence(toolUse.input.animal_note,    700),
   };
+}
+
+// Ořez dlouhého LLM výstupu tak, aby nikdy neskončil uprostřed slova.
+// Priorita: konec poslední celé věty. Když by z textu zbylo torzo (věta končí
+// v první polovině limitu), radši ořízneme na hranici slova a přidáme výpustku.
+// Prompt drží model pod 600 znaky, tohle je jen pojistka.
+function trimToSentence(text, max) {
+  const s = String(text || '').trim();
+  if (s.length <= max) return s;
+
+  const cut = s.slice(0, max);
+  let end = -1;
+  ['.', '!', '?', '…'].forEach(function (ch) {
+    end = Math.max(end, cut.lastIndexOf(ch));
+  });
+
+  if (end >= max * 0.5) {
+    // přiber zavírací uvozovky/závorky, které k interpunkci patří
+    const tail = (s.slice(end + 1).match(/^["'“”„»)\]]+/) || [''])[0];
+    return (cut.slice(0, end + 1) + tail).trim();
+  }
+
+  // −1 znak, aby se výpustka vešla do limitu
+  const room = s.slice(0, max - 1);
+  const space = room.lastIndexOf(' ');
+  return (space > 0 ? room.slice(0, space) : room).replace(/[\s,;:–—-]+$/, '') + '…';
 }
 
 // Slovníky odpovědí pro LLM — lokalizované. Klíče (q1, q2, q3…) odpovídají
@@ -584,14 +610,16 @@ function buildFeedbackPrompt(a, xFinal, yFinal, quadrant, lang) {
       'No filler like "you can clearly see…", "for sure…", "keep up the good work". Be specific, not generic.',
       'You MUST write both fields entirely in English — even if the participant\'s animal answers contain a non-English word, your response stays in English.',
       '',
-      '### Field "interpretation" (3–4 sentences, max 700 chars) — HARD ANALYSIS',
+      '### Field "interpretation" (3–4 sentences, HARD LIMIT 600 characters including spaces) — HARD ANALYSIS',
       'Based EXCLUSIVELY on Q1–Q9 and the computed quadrant. Do not mix in the animals here.',
       '- Name the user type in one sentence (stay aligned with the quadrant).',
       '- Highlight 1 concrete signal from the answers (e.g. specific tools in Q3, an advanced technique from Q5, a concern from Q8, or a tension between Q6/Q7/Q9).',
       '- Add 1–2 sentences of concrete recommendation for where to take their AI use next — tailored to what they actually do. Must be actionable, not boilerplate.',
       '',
-      '### Field "animal_note" (3–4 sentences, max 700 chars) — POETIC REFLECTION',
+      '### Field "animal_note" (3–4 sentences, HARD LIMIT 600 characters including spaces) — POETIC REFLECTION',
       'Here you have freedom. Reflect on the RELATIONSHIP between the two animals (self × AI) and connect it with what you know about this person from the hard data. Allow yourself a metaphor, a small theory, a touch of provocation. The goal is to entertain and surprise, not to classify. This is explicitly "soft science" — no claims about the user type, no predictions. Just a poetic punchline.',
+      '',
+      'Both fields MUST stay under 600 characters and MUST end with a complete sentence. Plan the length before you write — never run out of room mid-thought. Shorter is better than cut off.',
       '',
       'Call record_feedback with both fields filled in.',
     ].join('\n');
@@ -633,14 +661,16 @@ function buildFeedbackPrompt(a, xFinal, yFinal, quadrant, lang) {
     'Žádné fráze typu „je vidět, že…", „určitě…", „pokračuj v dobré práci". Buď konkrétní, ne generický.',
     'Obě pole piš výhradně česky — i když účastník napsal zvířata anglicky nebo jinak, ty odpovídáš česky.',
     '',
-    '### Pole "interpretation" (3–4 věty, max 700 znaků) — TVRDÁ ANALÝZA',
+    '### Pole "interpretation" (3–4 věty, TVRDÝ LIMIT 600 znaků včetně mezer) — TVRDÁ ANALÝZA',
     'Vychází VÝHRADNĚ z Q1–Q9 a vypočítaného kvadrantu. Zvířata sem nepleť.',
     '- Pojmenuj typ uživatele jednou větou (drž se kvadrantu).',
     '- Vyzdvihni 1 konkrétní signál z odpovědí (např. konkrétní nástroje v Q3, pokročilá technika z Q5, obavy z Q8, nebo rozpor mezi Q6/Q7/Q9).',
     '- Přidej 1–2 věty s konkrétním doporučením, kam dál směřovat používání AI — na míru tomu, co reálně dělá. Doporučení musí být akční, ne floskule.',
     '',
-    '### Pole "animal_note" (3–4 věty, max 700 znaků) — POETICKÁ ÚVAHA',
+    '### Pole "animal_note" (3–4 věty, TVRDÝ LIMIT 600 znaků včetně mezer) — POETICKÁ ÚVAHA',
     'Tady máš volnost. Uvažuj nad VZTAHEM mezi oběma zvířaty (sebe × AI) a propoj to s tím, co o člověku víš z tvrdých dat. Můžeš si dovolit metaforu, malou teorii, lehkou provokaci. Cílem je čtenáře pobavit a překvapit, ne klasifikovat. Tohle je explicitně „slabá věda" — žádná tvrzení o typu uživatele, žádné předpovědi. Jen poetická pointa.',
+    '',
+    'Obě pole MUSÍ zůstat pod 600 znaky a MUSÍ končit dokončenou větou. Rozvrhni si délku předem — nikdy nezůstávej bez místa uprostřed myšlenky. Radši kratší než useknuté.',
     '',
     'Zavolej tool record_feedback s oběma poli vyplněnými.',
   ].join('\n');
@@ -821,14 +851,16 @@ function buildFeedbackPromptV2(a, xFinal, yFinal, quadrant, orgIndex, lang) {
       'No filler like "you can clearly see…", "for sure…", "keep up the good work". Be specific, not generic.',
       'You MUST write both fields entirely in English.',
       '',
-      '### Field "interpretation" (3–4 sentences, max 700 chars) — HARD ANALYSIS',
+      '### Field "interpretation" (3–4 sentences, HARD LIMIT 600 characters including spaces) — HARD ANALYSIS',
       'Based EXCLUSIVELY on sections A, B' + (hasOrg ? ', C' : '') + ' and the computed quadrant. Do not mix in the animals here.',
       '- Name the user type in one sentence (stay aligned with the quadrant).',
       '- Highlight 1 concrete signal from the answers (a use-case from A2, a technique from A3, a concern from B4' + (hasOrg ? ', or a workplace signal from section C — e.g. shadow AI, missing support' : '') + ').',
       '- Add 1–2 sentences of concrete, actionable recommendation for where to take their AI use next — tailored to what they actually do' + (hasOrg ? ' and to their workplace conditions' : '') + '.',
       '',
-      '### Field "animal_note" (3–4 sentences, max 700 chars) — POETIC REFLECTION',
+      '### Field "animal_note" (3–4 sentences, HARD LIMIT 600 characters including spaces) — POETIC REFLECTION',
       'Here you have freedom. Reflect on the RELATIONSHIP between the two animals (self × AI), use the tags and reasons, and connect it with what you know about this person from the hard data. Allow yourself a metaphor, a small theory, a touch of provocation. The goal is to entertain and surprise, not to classify. No claims about the user type, no predictions. Just a poetic punchline.',
+      '',
+      'Both fields MUST stay under 600 characters and MUST end with a complete sentence. Plan the length before you write — never run out of room mid-thought. Shorter is better than cut off.',
       '',
       'Call record_feedback with both fields filled in.'
     );
@@ -888,14 +920,16 @@ function buildFeedbackPromptV2(a, xFinal, yFinal, quadrant, orgIndex, lang) {
     'Žádné fráze typu „je vidět, že…", „určitě…", „pokračuj v dobré práci". Buď konkrétní, ne generický.',
     'Obě pole piš výhradně česky.',
     '',
-    '### Pole "interpretation" (3–4 věty, max 700 znaků) — TVRDÁ ANALÝZA',
+    '### Pole "interpretation" (3–4 věty, TVRDÝ LIMIT 600 znaků včetně mezer) — TVRDÁ ANALÝZA',
     'Vychází VÝHRADNĚ ze sekcí A, B' + (hasOrg ? ', C' : '') + ' a vypočítaného kvadrantu. Zvířata sem nepleť.',
     '- Pojmenuj typ uživatele jednou větou (drž se kvadrantu).',
     '- Vyzdvihni 1 konkrétní signál z odpovědí (use-case z A2, technika z A3, obava z B4' + (hasOrg ? ', nebo pracovní signál ze sekce C — třeba shadow AI či chybějící podpora' : '') + ').',
     '- Přidej 1–2 věty s konkrétním akčním doporučením, kam dál směřovat používání AI — na míru tomu, co reálně dělá' + (hasOrg ? ' a jaké má v práci podmínky' : '') + '.',
     '',
-    '### Pole "animal_note" (3–4 věty, max 700 znaků) — POETICKÁ ÚVAHA',
+    '### Pole "animal_note" (3–4 věty, TVRDÝ LIMIT 600 znaků včetně mezer) — POETICKÁ ÚVAHA',
     'Tady máš volnost. Uvažuj nad VZTAHEM mezi oběma zvířaty (sebe × AI), využij štítky i důvody, a propoj to s tím, co o člověku víš z tvrdých dat. Můžeš si dovolit metaforu, malou teorii, lehkou provokaci. Cílem je čtenáře pobavit a překvapit, ne klasifikovat. Žádná tvrzení o typu uživatele, žádné předpovědi. Jen poetická pointa.',
+    '',
+    'Obě pole MUSÍ zůstat pod 600 znaky a MUSÍ končit dokončenou větou. Rozvrhni si délku předem — nikdy nezůstávej bez místa uprostřed myšlenky. Radši kratší než useknuté.',
     '',
     'Zavolej tool record_feedback s oběma poli vyplněnými.'
   );
