@@ -44,6 +44,7 @@ window.EVALAI_QUESTIONS = [
       { value: 'writing' },
       { value: 'summary' },
       { value: 'research' },
+      { value: 'translate' },
       { value: 'data' },
       { value: 'coding' },
       { value: 'media' },
@@ -59,6 +60,7 @@ window.EVALAI_QUESTIONS = [
     options: [
       { value: 'long_prompt' },
       { value: 'chatbot_max' },
+      { value: 'custom_assistant' },
       { value: 'vibecoding' },
       { value: 'automation' },
       { value: 'agent' },
@@ -66,12 +68,28 @@ window.EVALAI_QUESTIONS = [
     ],
   },
   {
-    id: 'a4',
+    // míra delegace — nejsilnější diskriminátor 2026: ne "kolik nástrojů znáš",
+    // ale "kolik práce si troufneš pustit z ruky". Id je a6, protože a4/a5
+    // existují ve starých datech; pořadí v poli určuje pořadí na obrazovce.
+    id: 'a6',
     sectionKey: 'sections.experience',
     n: 4,
     type: 'single',
     options: [
+      { value: 'never' },
+      { value: 'small' },
+      { value: 'verify' },
+      { value: 'long' },
+    ],
+  },
+  {
+    id: 'a4',
+    sectionKey: 'sections.experience',
+    n: 5,
+    type: 'single',
+    options: [
       { value: 'no' },
+      { value: 'employer' },
       { value: 'one' },
       { value: 'multi' },
     ],
@@ -79,7 +97,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'a5',
     sectionKey: 'sections.experience',
-    n: 5,
+    n: 6,
     type: 'multi',
     options: [
       { value: 'chatgpt' },
@@ -88,9 +106,9 @@ window.EVALAI_QUESTIONS = [
       { value: 'copilot' },
       { value: 'perplexity' },
       { value: 'notebooklm' },
+      { value: 'coding_agent' },
       { value: 'image' },
       { value: 'audio' },
-      { value: 'video' },
       { value: 'other' },
       { value: 'none', exclusive: true },
     ],
@@ -100,7 +118,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'b1',
     sectionKey: 'sections.attitude',
-    n: 6,
+    n: 7,
     type: 'scale',
     min: 1,
     max: 5,
@@ -108,7 +126,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'b2',
     sectionKey: 'sections.attitude',
-    n: 7,
+    n: 8,
     type: 'scale',
     min: 1,
     max: 5,
@@ -116,7 +134,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'b3',
     sectionKey: 'sections.attitude',
-    n: 8,
+    n: 9,
     type: 'scale',
     min: 1,
     max: 5,
@@ -124,7 +142,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'b4',
     sectionKey: 'sections.attitude',
-    n: 9,
+    n: 10,
     type: 'multi',
     maxSelections: 3,
     options: [
@@ -144,7 +162,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'c0',
     sectionKey: 'sections.org',
-    n: 10,
+    n: 11,
     type: 'single',
     options: [
       { value: 'employee' },
@@ -155,7 +173,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'c1',
     sectionKey: 'sections.org',
-    n: 11,
+    n: 12,
     type: 'single',
     showIf: { q: 'c0', notIn: ['none'] },
     variantOn: { q: 'c0', value: 'freelance', suffix: 'Freelance' },
@@ -169,7 +187,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'c2',
     sectionKey: 'sections.org',
-    n: 12,
+    n: 13,
     type: 'single',
     showIf: { q: 'c0', notIn: ['none'] },
     options: [
@@ -181,7 +199,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'c3',
     sectionKey: 'sections.org',
-    n: 13,
+    n: 14,
     type: 'single',
     optKeyPrefix: 'likert',
     showIf: { q: 'c0', notIn: ['none'] },
@@ -197,7 +215,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'c4',
     sectionKey: 'sections.org',
-    n: 14,
+    n: 15,
     type: 'single',
     optKeyPrefix: 'likert',
     showIf: { q: 'c0', notIn: ['none'] },
@@ -214,7 +232,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'c5',
     sectionKey: 'sections.org',
-    n: 15,
+    n: 16,
     type: 'single',
     optKeyPrefix: 'likert',
     showIf: { q: 'c0', notIn: ['none'] },
@@ -233,7 +251,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'q10',
     sectionKey: 'sections.metaphor',
-    n: 16,
+    n: 17,
     type: 'animal',
     fields: [
       { key: 'animalSelf', labelKey: 'q10.animalSelf.label',                                        maxLength: 30 },
@@ -253,7 +271,7 @@ window.EVALAI_QUESTIONS = [
   {
     id: 'q11',
     sectionKey: 'sections.about',
-    n: 17,
+    n: 18,
     type: 'demographics',
     fields: [
       {

@@ -48,54 +48,65 @@ pozice jednotlivce — je to agregát pro firemní report.
 „Jak často AI nástroje reálně používáš?"
 - vůbec / párkrát za měsíc / párkrát týdně / denně / je to součást skoro každé mé pracovní hodiny
 
-**A2 — use-casy (multi, NOVÁ — jádro změny „co děláš"):**
-„Co s AI opravdu děláš? Označ všechno, co jsi dělal(a) v posledním měsíci."
-- psaní a úprava textů
-- shrnutí dokumentů, schůzek nebo dlouhých materiálů
-- rešerše a vyhledávání informací
-- analýza dat či tabulek
-- programování / skripty
-- tvorba obrázků, audia nebo videa
-- brainstorming, rozhodování, druhý názor
-- nic z toho *(exclusive)*
+**A2 — use-casy (multi, šíře):** „K čemu AI používáš?"
+psaní · shrnutí · rešerše · **překlady a cizojazyčná komunikace** · analýza dat ·
+programování · tvorba médií · brainstorming · nic z toho *(exclusive)*
 
-**A3 — hloubka (multi, evoluce dnešní Q5):**
-„Které z těchto pokročilejších věcí ovládáš?"
-- dlouhé strukturované prompty
-- vlastní GPT / Projects / nahrávání vlastních souborů
-- automatizace (Make, Zapier, n8n…)
-- vibecoding (tvorba aplikací pomocí AI)
-- agenti (Claude Code, Deep Research, operátoři…)
-- nic z toho *(exclusive)*
+**A3 — hloubka (multi):** „Jak hluboko jdeš?"
+komplexní prompty · chatbot na maximum (projekty, deep research) ·
+**krmení AI vlastními dokumenty a daty** · vibecoding · automatizace ·
+agenti a asistenti · nic z toho *(exclusive)*
 
-**A4 — placené licence (beze změny = dnešní Q4):** ne / jedna / více
+**A6 — delegace (single, PŘIDÁNO v refreshi podzim 2026):**
+„Necháš AI zpracovat celý úkol samostatně a pak jen zkontroluješ výsledek?"
+- ne, vedu ji krok za krokem / u drobností / u věcí, které si umím zkontrolovat /
+  i u věcí, které bych sám dělal hodiny
 
-**A5 — nástroje (zachovat dnešní Q3, beze změny hodnot):**
-drží kontinuitu benchmarku + firmy zajímá, co lidi reálně používají.
+Důvod: v roce 2026 už nerozlišuje „kolik nástrojů znáš", ale „kolik práce si
+troufneš pustit z ruky". Do dvou let z toho nejspíš bude hlavní osa.
 
-**Scoring X (návrh, kalibrovat dry-runem na přemapovaných jarních datech):**
+**A4 — placené licence:** ne / **ne, ale platí mi ji zaměstnavatel** / jedna / více
+Firemní licence rozdaná plošně není závazek — proto má nižší váhu než vlastní peníze.
+
+**A5 — nástroje:** drží kontinuitu benchmarku. Refresh: pryč HeyGen/Synthesia
+(okrajové, generativní video už pokrývá `image`), přibyli **coding agenti**,
+`copilot` upřesněn na Microsoft 365 Copilot, `other` = jiný chatbot (Grok, Vibe, čínské modely).
+
+**Scoring X (nasazeno, kotvy v `scoring-test-v2.mjs`):**
 ```
-breadth% = počet A2 use-casů / 7
-depth%   = vážený součet A3 (long_prompt 10, custom 15, automation 20,
-           vibecoding 20, agent 25) / 90
-core%    = 0.45×breadth + 0.55×depth
-support% = (A1 frekvence /4 + A4 /2 + počet A5 nástrojů /6, průměr)
-X = round(70×core% + 30×support%)
+breadth = počet A2 use-casů / 8
+depth   = vážený součet A3 (long_prompt 10, chatbot_max 15, custom_assistant 15,
+          vibecoding 20, automation 20, agent 25) / 105
+deleg   = A6 (never 0 / small 0.3 / verify 0.6 / long 1)
+freq    = A1 (never 0 / monthly .25 / weekly .5 / daily .85 / always 1)
+paid    = A4 (no 0 / employer 0.3 / one 0.6 / multi 1)
+tools   = min(počet A5, 6) / 6
+X = round(30×breadth + 25×depth + 20×deleg + 12×freq + 8×paid + 5×tools)
 ```
-Cíl kalibrace: X=50 ≈ denní uživatel se 3–4 use-casy bez pokročilých technik;
-X≥75 jen skuteční power useři. Před nasazením spustit scoring-test na jarních
-datech (A2 u nich chybí → imputovat z Q5/Q3, jen pro sanity check rozptylu).
+Kotvy: X≈50 ≈ denní uživatel, 3–4 use-casy, 1 placený nástroj, deleguje ověřitelné
+úkoly (vychází 47). X≥75 jen skuteční power useři (kotva vychází 83).
 
 ## Sekce B — Postoj (osa Y)
 
-Vyrovnané váhy, žádná položka nesmí mít >35 % rozsahu.
+Tři likertové položky se stejnou váhou, každá míří na **jiný cíl** — proto
+nesplývají a redundance neškodí:
 
-**B1 (= dnešní Q7, funguje):** „AI změní můj život a práci k lepšímu." 1–5, váha ±15
-**B2 (NAHRAZUJE Q6):** „Z tempa, jakým se AI vyvíjí, mám spíš radost než obavy." 1–5, váha ±15
-**B3 (NAHRAZUJE Q9):** „Společnosti jako celku AI spíš pomůže, než ublíží." 1–5, váha ±10
-**B4 (= dnešní Q8, obavy multi, beze změny hodnot):** −3 za obavu, „žádné" +5
+**B1:** „Díky AI bude moje práce zajímavější a lepší." 1–5, váha ±16,7 *(osobní dopad)*
+**B2:** „Z tempa, jakým se AI vyvíjí, mám spíš radost než obavy." 1–5, váha ±16,7 *(rychlost a kontrola)*
+**B3:** „Společnosti jako celku AI spíš pomůže, než ublíží." 1–5, váha ±16,7 *(společnost)*
+**B4 — obavy (multi, max 3):** do Y **nevstupuje**.
 
-`Y_raw ∈ −49…+49 → Y = Y_raw + 50`. Cíl: sd Y ≥ 20 (jaro: 16,3).
+Refresh podzim 2026, dvě změny:
+
+1. **B1 se rozpojila od B3.** Původní znění „AI změní svět **i můj život** k lepšímu"
+   mixovalo dvě tvrzení a splývalo s B3 (společnost). Teď je B1 čistě o mé práci.
+2. **B4 ven ze scoringu.** Počet zaškrtnutých obav měří přemýšlivost, ne pesimismus
+   — přemýšlivý optimista si třemi křížky ubral 9 bodů. B4 zůstává jako kvalitativní
+   vrstva pro LLM a firemní report („co vaše lidi nejvíc trápí"), což je pro
+   zákazníka cennější než ten bod na mapě.
+
+`Y_raw ∈ −50…+50 → Y = Y_raw + 50`. Tři položky × ±2 kroky pokryjí plný rozsah
+bez komprese (jaro mělo sd 16,3, cíl ≥ 20).
 
 ## Sekce C — Organizace (5E-lite, NOVÁ)
 

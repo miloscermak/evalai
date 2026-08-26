@@ -13,38 +13,34 @@ function capSum(items, weights, cap) {
 
 function scoreX2(a) {
   const A2_USE = {
-    writing: 1, summary: 1, research: 1, data: 1,
+    writing: 1, summary: 1, research: 1, translate: 1, data: 1,
     coding: 1, media: 1, brainstorm: 1, none: 0,
   };
   const A3_ACTS = {
-    long_prompt: 10, chatbot_max: 15, vibecoding: 20, automation: 20, agent: 25,
-    none: 0,
+    long_prompt: 10, chatbot_max: 15, custom_assistant: 15,
+    vibecoding: 20, automation: 20, agent: 25, none: 0,
   };
-  const A1_FREQ = { never: 0, monthly: 0.25, weekly: 0.5, daily: 0.85, always: 1 };
-  const A4_PAID = { no: 0, one: 0.6, multi: 1 };
+  const A1_FREQ  = { never: 0, monthly: 0.25, weekly: 0.5, daily: 0.85, always: 1 };
+  const A4_PAID  = { no: 0, employer: 0.3, one: 0.6, multi: 1 };
+  const A6_DELEG = { never: 0, small: 0.3, verify: 0.6, long: 1 };
 
-  const breadth = capSum(asArray(a.a2), A2_USE, 7) / 7;
-  const depth   = capSum(asArray(a.a3), A3_ACTS, 90) / 90;
+  const breadth = capSum(asArray(a.a2), A2_USE, 8) / 8;
+  const depth   = capSum(asArray(a.a3), A3_ACTS, 105) / 105;
+  const deleg   = A6_DELEG[a.a6] || 0;
   const freq    = A1_FREQ[a.a1] || 0;
   const paid    = A4_PAID[a.a4] || 0;
   const toolCnt = asArray(a.a5).filter(v => v !== 'none').length;
   const tools   = Math.min(toolCnt, 6) / 6;
 
-  return Math.round(35 * breadth + 30 * depth + 15 * freq + 10 * paid + 10 * tools);
+  return Math.round(30 * breadth + 25 * depth + 20 * deleg + 12 * freq + 8 * paid + 5 * tools);
 }
 
 function scoreY2(a) {
-  const b1 = a.b1 ? (a.b1 - 3) * 7.5 : 0;
-  const b2 = a.b2 ? (a.b2 - 3) * 7.5 : 0;
-  const b3 = a.b3 ? (a.b3 - 3) * 5   : 0;
-  const concerns = asArray(a.b4);
-  let b4;
-  if (concerns.length === 1 && concerns[0] === 'none') {
-    b4 = 5;
-  } else {
-    b4 = -3 * concerns.filter(c => c !== 'none').length;
-  }
-  return clamp(Math.round(b1 + b2 + b3 + b4), -50, 50);
+  const W = 50 / 6;
+  const b1 = a.b1 ? (a.b1 - 3) * W : 0;
+  const b2 = a.b2 ? (a.b2 - 3) * W : 0;
+  const b3 = a.b3 ? (a.b3 - 3) * W : 0;
+  return clamp(Math.round(b1 + b2 + b3), -50, 50);
 }
 
 function orgIndexV2(a) {
@@ -65,27 +61,40 @@ const PERSONAS = [
   {
     name: 'Netečný (nikdy AI)',
     expect: { x: [0, 8] },
-    a: { a1: 'never', a2: ['none'], a3: ['none'], a4: 'no', a5: ['none'] },
+    a: { a1: 'never', a2: ['none'], a3: ['none'], a6: 'never', a4: 'no', a5: ['none'] },
   },
   {
     name: 'Občasný zkoušeč (měsíčně, 1-2 use-casy)',
     expect: { x: [12, 25] },
-    a: { a1: 'monthly', a2: ['writing', 'research'], a3: ['none'], a4: 'no', a5: ['chatgpt'] },
+    a: { a1: 'monthly', a2: ['writing', 'research'], a3: ['none'], a6: 'small', a4: 'no', a5: ['chatgpt'] },
   },
   {
     name: 'KOTVA X≈50: denní uživatel, 3-4 use-casy, bez pokročilých technik',
     expect: { x: [44, 56] },
-    a: { a1: 'daily', a2: ['writing', 'summary', 'research', 'brainstorm'], a3: ['long_prompt'], a4: 'one', a5: ['chatgpt', 'gemini', 'copilot'] },
+    a: { a1: 'daily', a2: ['writing', 'summary', 'research', 'brainstorm'], a3: ['long_prompt'], a6: 'verify', a4: 'one', a5: ['chatgpt', 'gemini', 'copilot'] },
   },
   {
     name: 'KOTVA X≥75: power user (agenti, automatizace, multi paid)',
     expect: { x: [75, 100] },
-    a: { a1: 'always', a2: ['writing', 'summary', 'research', 'data', 'coding', 'brainstorm'], a3: ['long_prompt', 'chatbot_max', 'automation', 'agent'], a4: 'multi', a5: ['chatgpt', 'claude', 'gemini', 'notebooklm', 'perplexity'] },
+    a: { a1: 'always', a2: ['writing', 'summary', 'research', 'data', 'coding', 'brainstorm'], a3: ['long_prompt', 'chatbot_max', 'automation', 'agent'], a6: 'long', a4: 'multi', a5: ['chatgpt', 'claude', 'gemini', 'notebooklm', 'perplexity'] },
   },
   {
     name: 'Úzký ale hluboký (vibecoder, málo use-casů)',
     expect: { x: [50, 70] },
-    a: { a1: 'daily', a2: ['coding', 'brainstorm'], a3: ['long_prompt', 'vibecoding', 'agent'], a4: 'multi', a5: ['claude', 'chatgpt'] },
+    a: { a1: 'daily', a2: ['coding', 'brainstorm'], a3: ['long_prompt', 'vibecoding', 'agent'], a6: 'long', a4: 'multi', a5: ['claude', 'chatgpt'] },
+  },
+  {
+    // firemní Copilot rozdaný plošně: licenci má, ale sám si ji nevybral
+    // a nic si netroufne delegovat — musí zůstat pod kotvou X≈50
+    name: 'Firemní Copilot uživatel (licence od zaměstnavatele, nedeleguje)',
+    expect: { x: [20, 40] },
+    a: { a1: 'weekly', a2: ['writing', 'summary', 'translate'], a3: ['none'], a6: 'small', a4: 'employer', a5: ['copilot'] },
+  },
+  {
+    // delegace jako samostatný signál: málo nástrojů, ale pouští práci z ruky
+    name: 'Tichý delegátor (jeden nástroj, ale deleguje velké úkoly)',
+    expect: { x: [45, 65] },
+    a: { a1: 'daily', a2: ['writing', 'summary', 'research', 'data'], a3: ['long_prompt', 'chatbot_max'], a6: 'long', a4: 'one', a5: ['chatgpt'] },
   },
   {
     name: 'Optimista bez obav',
@@ -93,13 +102,14 @@ const PERSONAS = [
     a: { b1: 5, b2: 5, b3: 5, b4: ['none'] },
   },
   {
+    // b4 do Y nevstupuje → neutrál je přesně 50 bez ohledu na počet obav
     name: 'Neutrál se 2 obavami',
-    expect: { y: [40, 50] },
+    expect: { y: [50, 50] },
     a: { b1: 3, b2: 3, b3: 3, b4: ['hallucinations', 'dependency'] },
   },
   {
     name: 'Pesimista se 3 obavami',
-    expect: { y: [0, 15] },
+    expect: { y: [0, 20] },
     a: { b1: 1, b2: 1, b3: 2, b4: ['jobs', 'safety', 'authenticity'] },
   },
   {

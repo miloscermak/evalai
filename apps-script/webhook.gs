@@ -220,55 +220,58 @@ function processSubmissionV2(payload) {
 
 // ──────── scoring X v2 (praxe, 0–100) ────────
 //
-// X = 35×šíře use-casů + 30×hloubka technik + 15×frekvence + 10×placené
-//     + 10×šíře nástrojů.
+// X = 30×šíře use-casů + 25×hloubka technik + 20×míra delegace + 12×frekvence
+//     + 8×placené + 5×šíře nástrojů.
 // Kalibrační kotvy (viz scoring-test-v2.mjs):
-//   X≈50 — denní uživatel, 3–4 use-casy, 1 placený nástroj, bez pokročilých technik
+//   X≈50 — denní uživatel, 3–4 use-casy, 1 placený nástroj, deleguje ověřitelné úkoly
 //   X≥75 — power user (agenti/automatizace, více placených, širší záběr)
 // Důvod přestavby: jarní data 2026 ukázala saturaci frekvence (67 % daily+)
 // — rozlišuje to, CO lidi s AI dělají, ne jak často sedí u chatbota.
+// Refresh podzim 2026: přibyla A6 (delegace) s váhou 20 — „kolik práce si troufneš
+// pustit z ruky" dnes rozlišuje líp než šíře nástrojů (ta spadla z 10 na 5).
+// A4 nově odlišuje vlastní peníze (závazek) od firemní licence (dostal ji, nevybral si).
 
 function scoreX2(a) {
   const A2_USE = {
-    writing: 1, summary: 1, research: 1, data: 1,
+    writing: 1, summary: 1, research: 1, translate: 1, data: 1,
     coding: 1, media: 1, brainstorm: 1, none: 0,
   };
   const A3_ACTS = {
-    long_prompt: 10, chatbot_max: 15, vibecoding: 20, automation: 20, agent: 25,
-    none: 0,
+    long_prompt: 10, chatbot_max: 15, custom_assistant: 15,
+    vibecoding: 20, automation: 20, agent: 25, none: 0,
   };
-  const A1_FREQ = { never: 0, monthly: 0.25, weekly: 0.5, daily: 0.85, always: 1 };
-  const A4_PAID = { no: 0, one: 0.6, multi: 1 };
+  const A1_FREQ  = { never: 0, monthly: 0.25, weekly: 0.5, daily: 0.85, always: 1 };
+  const A4_PAID  = { no: 0, employer: 0.3, one: 0.6, multi: 1 };
+  const A6_DELEG = { never: 0, small: 0.3, verify: 0.6, long: 1 };
 
-  const breadth = capSum(asArray(a.a2), A2_USE, 7) / 7;
-  const depth   = capSum(asArray(a.a3), A3_ACTS, 90) / 90;
+  const breadth = capSum(asArray(a.a2), A2_USE, 8) / 8;
+  const depth   = capSum(asArray(a.a3), A3_ACTS, 105) / 105;
+  const deleg   = A6_DELEG[a.a6] || 0;
   const freq    = A1_FREQ[a.a1] || 0;
   const paid    = A4_PAID[a.a4] || 0;
   const toolCnt = asArray(a.a5).filter(function (v) { return v !== 'none'; }).length;
   const tools   = Math.min(toolCnt, 6) / 6;
 
-  return Math.round(35 * breadth + 30 * depth + 15 * freq + 10 * paid + 10 * tools);
+  return Math.round(30 * breadth + 25 * depth + 20 * deleg + 12 * freq + 8 * paid + 5 * tools);
 }
 
 // ──────── scoring Y v2 (postoj, -50 až +50) ────────
 //
-// Vyrovnané váhy — jarní Y táhla jediná otázka (Q7, r=0.86, 2× váha)
-// a distribuce byla komprimovaná (sd 16). B1+B2 po ±15, B3 ±10, obavy −3/kus.
+// Tři vyvážené likertové položky, každá míří jinam:
+//   B1 = moje práce (osobní dopad), B2 = tempo vývoje (rychlost a kontrola),
+//   B3 = společnost. Dřív B1 mixovala „svět i můj život" a splývala s B3.
+// B4 (obavy) do Y NEVSTUPUJE — počet zaškrtnutých políček měří přemýšlivost,
+// ne pesimismus (přemýšlivý optimista si jimi škrtal až 9 bodů). Zůstává jako
+// kvalitativní vrstva pro LLM a firemní report („co vaše lidi nejvíc trápí").
+// Váha 50/6 ≈ 8.33 → tři položky × ±2 kroky = plný rozsah ±50 bez komprese.
 
 function scoreY2(a) {
-  const b1 = a.b1 ? (a.b1 - 3) * 7.5 : 0;   // osobní optimismus
-  const b2 = a.b2 ? (a.b2 - 3) * 7.5 : 0;   // radost vs. obavy z tempa vývoje
-  const b3 = a.b3 ? (a.b3 - 3) * 5   : 0;   // dopad na společnost
+  const W = 50 / 6;
+  const b1 = a.b1 ? (a.b1 - 3) * W : 0;   // moje práce bude zajímavější a lepší
+  const b2 = a.b2 ? (a.b2 - 3) * W : 0;   // radost vs. obavy z tempa vývoje
+  const b3 = a.b3 ? (a.b3 - 3) * W : 0;   // dopad na společnost
 
-  const concerns = asArray(a.b4);
-  let b4;
-  if (concerns.length === 1 && concerns[0] === 'none') {
-    b4 = 5;
-  } else {
-    b4 = -3 * concerns.filter(function (c) { return c !== 'none'; }).length;
-  }
-
-  return clamp(Math.round(b1 + b2 + b3 + b4), -50, 50);
+  return clamp(Math.round(b1 + b2 + b3), -50, 50);
 }
 
 // ──────── org index v2 (0–100, per respondent) ────────
@@ -650,20 +653,27 @@ const ANSWER_LABELS_V2 = {
     A1: { never: 'AI skoro nepoužívá', monthly: 'párkrát za měsíc', weekly: 'párkrát týdně', daily: 'denně', always: 'mnohokrát denně, součást práce' },
     A2: {
       writing: 'psaní a úprava textů', summary: 'shrnutí dokumentů a schůzek',
-      research: 'rešerše a vyhledávání', data: 'analýza dat a tabulek',
+      research: 'rešerše a vyhledávání', translate: 'překlady a cizojazyčná komunikace',
+      data: 'analýza dat a tabulek',
       coding: 'programování/skripty', media: 'tvorba obrázků/audia/videa',
       brainstorm: 'brainstorming a druhý názor', none: 'nic',
     },
     A3: {
       long_prompt: 'píše komplexní prompty', chatbot_max: 'využívá chatboty na maximum (projekty, deep research)',
+      custom_assistant: 'krmí AI vlastními dokumenty a daty (projekty, znalostní báze)',
       vibecoding: 'vibecoduje vlastní aplikace', automation: 'staví automatizace',
       agent: 'buduje agenty / asistenty', none: 'nic z pokročilých technik',
     },
-    A4: { no: 'neplatí za AI', one: 'jeden placený nástroj', multi: 'dva a víc placených nástrojů' },
+    A4: { no: 'neplatí za AI', employer: 'neplatí sám, licenci má od zaměstnavatele', one: 'jeden placený nástroj', multi: 'dva a víc placených nástrojů' },
     A5: {
-      chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Microsoft Copilot',
-      perplexity: 'Perplexity', notebooklm: 'NotebookLM', image: 'generování obrázků',
-      audio: 'generování audia', video: 'generování videa', other: 'jiný AI nástroj', none: 'žádný',
+      chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Microsoft 365 Copilot',
+      perplexity: 'Perplexity', notebooklm: 'NotebookLM', coding_agent: 'coding agenti (Claude Code, Cursor)',
+      image: 'generování obrázků', audio: 'generování audia',
+      video: 'generování videa', other: 'jiný chatbot', none: 'žádný',
+    },
+    A6: {
+      never: 'nedeleguje, vede AI krok za krokem', small: 'deleguje jen drobnosti',
+      verify: 'deleguje úkoly, které si umí zkontrolovat', long: 'deleguje i mnohahodinové úkoly',
     },
     B4: {
       hallucinations: 'halucinace / chybné odpovědi', jobs: 'dopad na pracovní místa',
@@ -693,20 +703,27 @@ const ANSWER_LABELS_V2 = {
     A1: { never: 'hardly uses AI', monthly: 'a few times a month', weekly: 'a few times a week', daily: 'daily', always: 'many times a day, part of their work' },
     A2: {
       writing: 'writing and editing text', summary: 'summarising documents and meetings',
-      research: 'research and finding information', data: 'analysing data and spreadsheets',
+      research: 'research and finding information', translate: 'translation and cross-language communication',
+      data: 'analysing data and spreadsheets',
       coding: 'programming/scripts', media: 'creating images/audio/video',
       brainstorm: 'brainstorming and second opinions', none: 'nothing',
     },
     A3: {
       long_prompt: 'writes complex, deliberate prompts', chatbot_max: 'pushes chatbots to the max (projects, deep research)',
+      custom_assistant: 'feeds AI their own documents and data (projects, knowledge bases)',
       vibecoding: 'vibecodes their own apps', automation: 'builds automations',
       agent: 'builds agents / assistants', none: 'none of the advanced techniques',
     },
-    A4: { no: 'does not pay for any AI', one: 'one paid tool', multi: 'two or more paid tools' },
+    A4: { no: 'does not pay for any AI', employer: 'does not pay personally, has an employer licence', one: 'one paid tool', multi: 'two or more paid tools' },
     A5: {
-      chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Microsoft Copilot',
-      perplexity: 'Perplexity', notebooklm: 'NotebookLM', image: 'image generation',
-      audio: 'audio generation', video: 'video generation', other: 'another AI tool', none: 'none',
+      chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Microsoft 365 Copilot',
+      perplexity: 'Perplexity', notebooklm: 'NotebookLM', coding_agent: 'coding agents (Claude Code, Cursor)',
+      image: 'image generation', audio: 'audio generation',
+      video: 'video generation', other: 'another chatbot', none: 'none',
+    },
+    A6: {
+      never: 'does not delegate, guides AI step by step', small: 'delegates only small things',
+      verify: 'delegates tasks they can verify', long: 'delegates even multi-hour tasks',
     },
     B4: {
       hallucinations: 'hallucinations / false answers', jobs: 'job loss',
@@ -761,9 +778,10 @@ function buildFeedbackPromptV2(a, xFinal, yFinal, quadrant, orgIndex, lang) {
       '- A1 frequency: ' + (L.A1[a.a1] || a.a1 || '?'),
       '- A2 what they use AI for: ' + (list(a.a2, L.A2) || '—'),
       '- A3 advanced techniques: ' + (list(a.a3, L.A3) || '—'),
+      '- A6 delegating whole tasks: ' + (L.A6[a.a6] || a.a6 || '?'),
       '- A4 paid services: ' + (L.A4[a.a4] || a.a4 || '?'),
       '- A5 tools: ' + (list(a.a5, L.A5) || '—'),
-      '- B1 "AI will change the world and my life for the better": ' + (L.SCALE[a.b1] || '?'),
+      '- B1 "Thanks to AI, my work will get more interesting and better": ' + (L.SCALE[a.b1] || '?'),
       '- B2 "The pace of AI development brings me more joy than worry": ' + (L.SCALE[a.b2] || '?'),
       '- B3 "AI will help society more than harm it": ' + (L.SCALE[a.b3] || '?'),
       '- B4 concerns: ' + (list(a.b4, L.B4) || '—'),
@@ -827,9 +845,10 @@ function buildFeedbackPromptV2(a, xFinal, yFinal, quadrant, orgIndex, lang) {
     '- A1 frekvence: ' + (L.A1[a.a1] || a.a1 || '?'),
     '- A2 na co AI používá: ' + (list(a.a2, L.A2) || '—'),
     '- A3 pokročilé techniky: ' + (list(a.a3, L.A3) || '—'),
+    '- A6 delegace celých úkolů: ' + (L.A6[a.a6] || a.a6 || '?'),
     '- A4 placené služby: ' + (L.A4[a.a4] || a.a4 || '?'),
     '- A5 nástroje: ' + (list(a.a5, L.A5) || '—'),
-    '- B1 „AI změní svět i můj život k lepšímu": ' + (L.SCALE[a.b1] || '?'),
+    '- B1 „Díky AI bude moje práce zajímavější a lepší": ' + (L.SCALE[a.b1] || '?'),
     '- B2 „Z tempa vývoje AI mám spíš radost než obavy": ' + (L.SCALE[a.b2] || '?'),
     '- B3 „Společnosti AI spíš pomůže, než ublíží": ' + (L.SCALE[a.b3] || '?'),
     '- B4 obavy: ' + (list(a.b4, L.B4) || '—'),
@@ -1080,6 +1099,7 @@ function testSubmissionV2() {
       a1: 'daily',
       a2: ['writing', 'summary', 'research', 'brainstorm'],
       a3: ['long_prompt', 'chatbot_max'],
+      a6: 'verify',
       a4: 'one',
       a5: ['chatgpt', 'claude', 'notebooklm'],
       b1: 4,

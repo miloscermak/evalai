@@ -8,12 +8,16 @@ Use case: na začátku workshopu Milos zobrazí QR kód, účastníci vyplní te
 
 ## Aktuální stav
 
-Fáze: **v1.0 — v2 „firemní" dotazník NASAZEN (2026-07-07): Apps Script redeploynut, frontend na produkci, end-to-end smoke test prošel (web → sheet `submissions_v2` → dashboard).** Souběh dvou verzí: **v2 hlavní** na `/` (16 otázek: A praxe / B postoj / C organizace + zvířata s chips + demografie s rolí) a **v1 zmrazená** na `/v1` (jarní dotazník, stará databáze `submissions`). v2 zapisuje do nového tabu `submissions_v2`, dashboard čte v2 default (`?v=1` pro jarní data). Návrh a scoring: `docs/design-v2.md`; předávací detaily a deploy checklist: `HANDOFF.md`.
+Fáze: **v1.1 — refresh obsahu v2 (2026-08-26), čeká na redeploy Apps Scriptu.** Přibyla otázka A6 (delegace celých úkolů) jako nejsilnější diskriminátor 2026, X převáženo (30 šíře / 25 hloubka / 20 delegace / 12 frekvence / 8 placené / 5 nástroje), B4 vyřazena z osy Y, B1 rozpojena od B3. Detaily v `docs/design-v2.md`, rollback: git tag `v2.0-pre-refresh`.
+
+Předchozí fáze: **v1.0 — v2 „firemní" dotazník NASAZEN (2026-07-07): Apps Script redeploynut, frontend na produkci, end-to-end smoke test prošel (web → sheet `submissions_v2` → dashboard).** Souběh dvou verzí: **v2 hlavní** na `/` (16 otázek: A praxe / B postoj / C organizace + zvířata s chips + demografie s rolí) a **v1 zmrazená** na `/v1` (jarní dotazník, stará databáze `submissions`). v2 zapisuje do nového tabu `submissions_v2`, dashboard čte v2 default (`?v=1` pro jarní data). Návrh a scoring: `docs/design-v2.md`; předávací detaily a deploy checklist: `HANDOFF.md`.
 
 Klíčové v2 změny: X se počítá z **aktivit** (co člověk s AI dělá — use-casy A2 + techniky A3), ne z frekvence (jarní data: 67 % daily+ → frekvence už nerozlišuje). Y má vyrovnané váhy (jarní Y táhla jediná otázka, r=0.86). Sekce C (5E-lite dle Public First indexu) dává **Org Readiness Index** — agregát pro firemní report, do pozice jednotlivce nevstupuje; gate otázka c0 umí volnou nohu i přeskočení. Placený produkt: workshop + firemní report; assessment slouží i jako prodejní nástroj („změříme → doporučíme workshop").
 
 Jarní sběr (v0.5–0.6): **467 validních datapointů z 22 akcí** (2026-04-27 → 2026-06-16), slouží jako benchmark v1.
 
+- [ ] **Redeploy Apps Scriptu po refreshi 2026-08-26** — bez něj webhook nezná `a6`, `a4=employer`, `a2=translate`, `a3=custom_assistant`, `a5=coding_agent` a spočítá je jako nulu. Frontend pushnout až PO redeployi.
+- [x] **Refresh obsahu (2026-08-26):** A6 delegace, A2 +překlady, A3 +vlastní data, A4 +firemní licence, A5 −HeyGen +coding agenti +Grok pod „jiný chatbot", B1 nové znění, B4 mimo scoring. Kotvy v `scoring-test-v2.mjs` sedí, end-to-end průchod CZ i EN prošel.
 - [x] **Deploy v2 (2026-07-07):** Apps Script redeploy + `testSubmissionV2` OK, push na Netlify, ostrý smoke test z webu OK (zápis do `submissions_v2` vč. diakritiky, dashboard ukazuje body)
 - [ ] Kosmetika: LLM občas přeteče 700 znaků u `interpretation` a slice usekne slovo — zpřísnit instrukci délky v promptu
 - [ ] Generátor firemního reportu (AI Readiness + 5E + benchmark + doporučení) — struktura v `docs/design-v2.md`
@@ -60,7 +64,7 @@ evalai/
 │   ├── index.html     # dotazník v2 (hlavní)
 │   ├── v1.html        # zmrazený dotazník v1 (jarní), URL /v1
 │   ├── app.js         # state machine, render, submit — SDÍLENÝ pro v1 i v2
-│   ├── questions.js   # definice otázek v2 (A/B/C + q10 chips + q11 s rolí)
+│   ├── questions.js   # definice otázek v2 (A/B/C + a6 delegace + q10 chips + q11 s rolí)
 │   ├── questions-v1.js # zmrazená struktura v1 — NEUPRAVOVAT
 │   ├── style.css
 │   ├── dashboard.html # live scatter plot (default v2 data, ?v=1 jarní)

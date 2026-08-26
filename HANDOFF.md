@@ -260,6 +260,49 @@ response do frontendu → result screen
 
 ---
 
+## 2026-08-26 — refresh obsahu v2 (NEnasazeno, čeká na Apps Script)
+
+Revize dotazníku po roce provozu: co v roce 2026 už nerozlišuje a co chybí.
+
+**Co se změnilo**
+
+| Otázka | Změna | Proč |
+|---|---|---|
+| A2 | titulek „K čemu AI používáš?", + překlady | Titulek splýval s A3; překlady jsou v CZ korporátu top use-case a chyběly |
+| A3 | titulek „Jak hluboko jdeš?", + krmení vlastními daty | Mezistupeň mezi „píšu prompty" a „stavím agenta" |
+| **A6** | **NOVÁ** — delegace celých úkolů (4 stupně) | Nejsilnější diskriminátor 2026; váha 20 z X |
+| A4 | + „platí mi ji zaměstnavatel" (váha 0,3) | Plošně rozdaný Copilot není závazek — dřív dostal +6 bodů X zadarmo |
+| A5 | − HeyGen/Synthesia, + coding agenti, `copilot` = M365, `other` = jiný chatbot (Grok, Vibe, čínské) | Avatarové video okrajové; coding agenti největší delta roku |
+| B1 | nové znění „Díky AI bude moje práce zajímavější a lepší" | Staré mixovalo „svět i můj život" a splývalo s B3 |
+| B4 | **ven ze scoringu Y** | Počet zaškrtnutých obav měří přemýšlivost, ne pesimismus |
+
+**Přepočet vah**
+- X: `30×šíře + 25×hloubka + 20×delegace + 12×frekvence + 8×placené + 5×nástroje`
+  (dřív 35/30/–/15/10/10). Kotva X≈50 vychází na 47, power user na 83.
+- Y: tři likerty po ±16,7 (dřív 15/15/10 + obavy). Plný rozsah ±50 bez komprese.
+
+**Co bylo otestováno**
+- `node scoring-test-v2.mjs` — 14 kotev včetně dvou nových person
+  („firemní Copilot uživatel" 26, „tichý delegátor" 57) → všechny sedí.
+- Skript ověřil, že každá možnost má CZ i EN klíč a že ji zná scoring i LLM slovník.
+- End-to-end průchod formulářem v prohlížeči (CZ i EN), payload odchycen před
+  odesláním — **do ostrého sheetu nic nešlo**. Struktura payloadu sedí (`a6`, `a4:employer`,
+  `a2:translate`, `a5:coding_agent`, `q11.role`).
+- `/v1` zmrazená verze nedotčená, funguje.
+
+**Co ZBÝVÁ (blokuje nasazení)**
+1. Redeploy `apps-script/webhook.gs` do Apps Scriptu (Milos ručně).
+2. Teprve pak push frontendu na Netlify — pořadí je klíčové, starý webhook by
+   nové kódy spočítal jako nulu.
+
+**Rollback:** `git tag v2.0-pre-refresh` = stav před refreshem.
+
+**Sheet:** schema se NEMĚNÍ, žádný nový sloupec (vše je v `answers_json`).
+Staré řádky v `submissions_v2` mají skóre podle starých vah — pro analýzu
+je nutné je odlišit podle timestampu, nebo dopsat backfill.
+
+---
+
 ## Klíčové URL
 
 - **Dotazník (online):** `https://kdojsem.inspiruj.se`
